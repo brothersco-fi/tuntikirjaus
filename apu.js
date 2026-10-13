@@ -26,9 +26,10 @@
     num1: n => fNum1.format(n),
     eur: n => fEur.format(n),
 
+    // Tunnit minuutin tarkkuudella (sekunnit pyöristetään pois, jotta summat täsmäävät laskuun)
     tunnit(saapui, lahti) {
       if (!lahti) return null;
-      return Math.max(0, (new Date(lahti) - new Date(saapui)) / 3600000);
+      return Math.max(0, Math.round((new Date(lahti) - new Date(saapui)) / 60000) / 60);
     },
     kesto(ms) {
       const min = Math.max(0, Math.floor(ms / 60000));

@@ -9,7 +9,7 @@ Työmaan tuntikirjaus puhelimella. Tekijät eivät tarvitse tunnuksia: jokainen 
 
 ## Käyttöönotto
 
-1. **Supabase**: luo projekti (alue: Stockholm). Avaa *SQL Editor*, liitä `supabase/schema.sql` ja paina *Run*.
+1. **Supabase**: luo projekti (alue: Stockholm). Avaa *SQL Editor*, liitä `supabase/schema.sql` ja paina *Run*. Saman tiedoston voi ajaa uudelleen päivitysten jälkeen.
 2. **Oma tunnus hallintaan**: *Authentication → Users → Add user* (sähköposti + salasana, "Auto confirm"). Aja sitten SQL Editorissa:
    ```sql
    insert into public.adminit (user_id)
@@ -18,6 +18,16 @@ Työmaan tuntikirjaus puhelimella. Tekijät eivät tarvitse tunnuksia: jokainen 
 3. **Sulje vapaa rekisteröityminen**: *Authentication → Sign In / Providers* → poista "Allow new users to sign up".
 4. **config.js**: kopioi *Project URL* ja *publishable key* (Project Settings → API Keys). Älä koskaan käytä secret- tai service_role-avainta.
 5. **GitHub Pages**: tiedostot julkiseen repoon, *Settings → Pages → Deploy from branch: main / root*.
+
+## Tekijän toiminnot
+
+- **Saavuin / Lähdin** työmaalla. Jos painallus unohtui saapuessa, *Unohdin painaa saapuessa* -kohdasta voi valita saapumisajan.
+- **Siirryn toiselle työmaalle**: siirtymä lasketaan työajaksi ja kohdistuu työmaalle, jolle tekijä saapuu.
+- **Lisää muu työ** (esim. tarvikehaku, varastolla): kuvaus, päivä ja kesto, ja halutessa työmaa.
+- **Korjaa** omia kirjauksia ja **lisää unohtunut kirjaus** viikon ajalta. Korjaukset näkyvät hallinnassa, ja alkuperäiset ajat jäävät talteen.
+- **Oma yhteenveto laskutusta varten**: tunnit valitulta ajalta ja Excel-tiedosto.
+
+Tekijän linkki on muotoa `.../tuntikirjaus/?nimi=etunimi-sukunimi&k=...`. Nimi on vain tunnistamisen helpottamiseksi; pääsyn ratkaisee `k`-avain.
 
 ## Päivittäinen käyttö
 

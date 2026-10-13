@@ -15,6 +15,9 @@
   --warn-soft: #FBEBD0;
   --bad: #B42318;
   --bad-soft: #FBE1DE;
+  --move: #2D5B8A;
+  --move-soft: #DCE6F1;
+  --accent-soft: #FBE4D6;
   --focus: #1F5FD1;
   --font-display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
   --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -38,6 +41,9 @@
     --warn-soft: #3A2C14;
     --bad: #F3735F;
     --bad-soft: #3D1D19;
+    --move: #82AEDD;
+    --move-soft: #1B2A39;
+    --accent-soft: #3B2316;
     --focus: #7EA8FF;
     --shadow: 0 1px 2px rgb(0 0 0 / .3);
     color-scheme: dark;
@@ -127,6 +133,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); outline:
 .pill.on { background: var(--on-soft); color: var(--on); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.move { background: var(--move-soft); color: var(--move); }
+.pill.muu { background: var(--accent-soft); color: var(--accent); }
 .pill.ei::before { display: none; }
 
 /* ---------- Ilmoitus (toast) ---------- */
