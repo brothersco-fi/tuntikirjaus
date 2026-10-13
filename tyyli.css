@@ -141,6 +141,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); outline:
 }
 #toast.nakyy { transform: translate(-50%, 0); }
 #toast[data-tyyppi=virhe] { background: var(--bad); color: #fff; }
+#toast[data-tyyppi=varoitus] { background: var(--warn); color: var(--bg); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }

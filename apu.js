@@ -50,19 +50,23 @@
     },
     karttalinkki: (lat, lon) => `https://www.google.com/maps?q=${lat},${lon}`,
 
-    // Hakee puhelimen sijainnin. Palauttaa {lat, lon, tarkkuus} tai null.
-    sijainti(maxIka = 60000, aikaraja = 9000) {
-      return new Promise(resolve => {
-        if (!('geolocation' in navigator)) return resolve(null);
+    // Hakee puhelimen sijainnin. Palauttaa {lat, lon, tarkkuus} tai {virhe: 'estetty' | 'ei_saatavilla' | 'aikakatkaisu' | 'ei_tukea'}.
+    // Yrittää ensin tarkalla GPS:llä, sitten nopeammalla verkkosijainnilla (sisätiloissa GPS voi olla hidas).
+    async sijainti(maxIka = 60000) {
+      if (!('geolocation' in navigator)) return { virhe: 'ei_tukea' };
+      const yritys = (tarkka, aika) => new Promise(res => {
         let valmis = false;
-        const loppu = v => { if (!valmis) { valmis = true; resolve(v); } };
-        setTimeout(() => loppu(null), aikaraja + 1000);
+        const loppu = v => { if (!valmis) { valmis = true; clearTimeout(t); res(v); } };
+        const t = setTimeout(() => loppu({ virhe: 'aikakatkaisu' }), aika + 1500);
         navigator.geolocation.getCurrentPosition(
           p => loppu({ lat: p.coords.latitude, lon: p.coords.longitude, tarkkuus: Math.round(p.coords.accuracy) }),
-          () => loppu(null),
-          { enableHighAccuracy: true, maximumAge: maxIka, timeout: aikaraja }
+          e => loppu({ virhe: e.code === 1 ? 'estetty' : e.code === 3 ? 'aikakatkaisu' : 'ei_saatavilla' }),
+          { enableHighAccuracy: tarkka, maximumAge: maxIka, timeout: aika }
         );
       });
+      let r = await yritys(true, 10000);
+      if (r.virhe && r.virhe !== 'estetty') r = await yritys(false, 8000);
+      return r;
     },
 
     virhe(e) {

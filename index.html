@@ -78,6 +78,10 @@
   .historia .h-aika { text-align: right; }
   .historia .tyhja { display: block; color: var(--muted); }
 
+  .sijaintiohje { background: var(--warn-soft); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
+  .sijaintiohje strong { color: var(--warn); font-size: 1.05rem; }
+  .sijaintiohje p, .sijaintiohje ol { margin: 0; }
+  .sijaintiohje ol { padding-left: 1.2em; display: grid; gap: 4px; }
   .ohje { color: var(--muted); font-size: .92rem; }
   .ohje summary { cursor: pointer; font-weight: 600; }
   .ohje p { margin: .5rem 0 0; }
@@ -90,6 +94,8 @@
     <h1 id="tervehdys">Tuntikirjaus</h1>
     <div class="paivays"><span id="paiva"></span> · <span id="kello"></span></div>
   </header>
+
+  <div id="sijaintiOhje" class="sijaintiohje" hidden aria-live="polite"></div>
 
   <section id="lataus" class="kortti" aria-live="polite">Ladataan…</section>
 
@@ -166,7 +172,47 @@
   const $ = id => document.getElementById(id);
   const AVAIN_KEY = 'tk_avain', TYOMAA_KEY = 'tk_viimeisin_tyomaa';
 
-  let db = null, avain = null, tila = null, sijainti = null, valittu = null, ajastin = null;
+  let db = null, avain = null, tila = null, sijainti = null, sijaintiVirhe = null, valittu = null, ajastin = null;
+  const onIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // Päivittää sijainnin tilan ja näyttää ohjeen, jos sijaintia ei saada
+  function kasitteleSijainti(s) {
+    if (s && !s.virhe) { sijainti = s; sijaintiVirhe = null; }
+    else if (s) sijaintiVirhe = s.virhe;
+    piirraSijaintiOhje();
+    return s && !s.virhe ? s : null;
+  }
+
+  function piirraSijaintiOhje() {
+    const el = $('sijaintiOhje');
+    if (!sijaintiVirhe || !tila) { el.hidden = true; return; }
+    if (sijaintiVirhe === 'estetty') {
+      el.innerHTML = `<strong>Sijainti on estetty</strong>
+        <p>Kirjaukset tallentuvat, mutta ilman sijaintia. Salli sijainti näin:</p>
+        ${onIOS
+          ? `<ol><li>Avaa <b>Asetukset → Tietosuoja ja suojaus → Sijaintipalvelut</b> ja varmista, että ne ovat päällä.</li>
+               <li>Samasta listasta: <b>Safari-verkkosivustot → Käytettäessä</b>.</li>
+               <li>Palaa tälle sivulle, päivitä se ja valitse <b>Salli</b>, kun puhelin kysyy.</li></ol>`
+          : `<ol><li>Napauta osoiterivin vasemmalla puolella olevaa kuvaketta ja valitse <b>Luvat → Sijainti → Salli</b>.</li>
+               <li>Varmista myös, että puhelimen sijainti on päällä (yläreunan pikavalikko).</li>
+               <li>Päivitä sivu.</li></ol>`}
+        <div><button class="btn btn-pieni" type="button" id="sijaintiUudelleen">Yritä uudelleen</button></div>`;
+    } else if (sijaintiVirhe === 'ei_tukea') {
+      el.innerHTML = `<strong>Selain ei tue sijaintia</strong><p>Kirjaukset tallentuvat ilman sijaintia. Avaa linkki puhelimen Safarilla tai Chromella.</p>`;
+    } else {
+      el.innerHTML = `<strong>Sijaintia ei saatu</strong>
+        <p>Tarkista, että puhelimen sijainti (GPS) on päällä. Sisätiloissa sijainnin löytyminen voi kestää hetken.</p>
+        <div><button class="btn btn-pieni" type="button" id="sijaintiUudelleen">Yritä uudelleen</button></div>`;
+    }
+    el.hidden = false;
+    const b = $('sijaintiUudelleen');
+    if (b) b.addEventListener('click', async () => {
+      b.disabled = true; b.textContent = 'Haetaan sijaintia…';
+      const s = kasitteleSijainti(await TK.sijainti(0));
+      if (s) TK.toast('Sijainti löytyi');
+      if (tila && !tila.avoin) piirraVapaa();
+    });
+  }
 
   // ---------- Avain linkistä tai muistista ----------
   const url = new URL(location.href);
@@ -208,6 +254,7 @@
     $('tervehdys').textContent = 'Hei, ' + tila.nimi.split(' ')[0] + '!';
     if (tila.avoin) piirraTyossa(); else piirraVapaa();
     piirraHistoria();
+    piirraSijaintiOhje();
     paivitaKello();
   }
 
@@ -312,8 +359,7 @@
   }
 
   async function haeSijainti() {
-    const s = await TK.sijainti(120000, 8000);
-    if (s) sijainti = s;
+    kasitteleSijainti(await TK.sijainti(120000));
     if (tila && !tila.avoin) piirraVapaa();
   }
 
@@ -328,8 +374,7 @@
   $('saavuNappi').addEventListener('click', async () => {
     const nappi = $('saavuNappi'), teksti = nappi.querySelector('span');
     nappi.disabled = true; teksti.textContent = 'Haetaan sijaintia…';
-    const s = await TK.sijainti(60000, 8000);
-    if (s) sijainti = s;
+    const s = kasitteleSijainti(await TK.sijainti(60000));
     teksti.textContent = 'Tallennetaan…';
     try {
       const { data, error } = await db.rpc('saavu', {
@@ -342,7 +387,9 @@
       const w = tila.tyomaat.find(x => x.id === valittu);
       const m = s && w ? TK.etaisyys(s.lat, s.lon, w.lat, w.lon) : null;
       piirra();
-      if (m !== null && m > w.sade_m + Math.min(s.tarkkuus, 500)) {
+      if (!s) {
+        TK.toast(`Kirjattu klo ${TK.aika(tila.avoin.saapui)}, mutta ilman sijaintia.`, 'varoitus');
+      } else if (m !== null && m > w.sade_m + Math.min(s.tarkkuus, 500)) {
         TK.toast(`Kirjattu klo ${TK.aika(tila.avoin.saapui)}. Huom: olit ${TK.matka(m)} päässä työmaasta.`, 'virhe');
       } else {
         TK.toast(`Kirjattu: saavuit klo ${TK.aika(tila.avoin.saapui)}`);
@@ -365,7 +412,7 @@
       if (lahti < new Date(tila.avoin.saapui) || lahti > new Date()) return TK.toast('Lähtöaika ei voi olla ennen saapumista eikä tulevaisuudessa.', 'virhe');
     }
     nappi.disabled = true; $('lahdeTeksti').textContent = kasin ? 'Tallennetaan…' : 'Haetaan sijaintia…';
-    const s = kasin ? null : await TK.sijainti(60000, 8000);
+    const s = kasin ? null : kasitteleSijainti(await TK.sijainti(60000));
     $('lahdeTeksti').textContent = 'Tallennetaan…';
     try {
       const { data, error } = await db.rpc('lahde', {
@@ -378,7 +425,8 @@
       tila = data;
       $('kommentti').value = ''; $('lahtoAika').value = '';
       const viim = tila.viimeiset[0];
-      TK.toast(viim ? `Kirjattu: ${TK.aika(viim.saapui)}–${TK.aika(viim.lahti)}, ${TK.num(TK.tunnit(viim.saapui, viim.lahti))} h` : 'Lähtö kirjattu');
+      const teksti = viim ? `Kirjattu: ${TK.aika(viim.saapui)}–${TK.aika(viim.lahti)}, ${TK.num(TK.tunnit(viim.saapui, viim.lahti))} h` : 'Lähtö kirjattu';
+      if (!kasin && !s) TK.toast(teksti + ' (ilman sijaintia)', 'varoitus'); else TK.toast(teksti);
       valittu = edellinen ? edellinen.tyomaa_id : valittu;
       piirra();
       haeSijainti();
