@@ -198,7 +198,7 @@
           <h2>Tekijät</h2>
           <div class="napit"><label class="valinta"><input type="checkbox" id="naytaArkTekijat"> Näytä arkistoidut</label><button class="btn btn-ensi" type="button" id="lisaaTekija">Lisää tekijä</button></div>
         </div>
-        <p class="muted" style="margin:6px 0 0">Jokaisella tekijällä on oma linkki. Lähetä se tekstiviestillä, niin tekijä avaa sen puhelimella ja lisää kotinäyttöön.</p>
+        <p class="muted" style="margin:6px 0 0">Lähetä uudelle tekijälle kutsulinkki tekstiviestillä. Hän avaa sen ja luo salasanan. Sen jälkeen hän kirjautuu puhelinnumerolla ja salasanalla.</p>
         <div class="taulu-kehys" id="tekijaTaulu"></div>
       </section>
     </main>
@@ -215,11 +215,12 @@
         <select id="kTyyppi">
           <option value="tyomaa">Työmaalla</option>
           <option value="siirtyma">Siirtymä työmaalta toiselle</option>
+          <option value="matka">Matka-aika (merkitty kestona)</option>
           <option value="muu">Muu työ</option>
         </select>
       </label>
     </div>
-    <label id="kKuvausL" hidden>Mitä tehtiin (muu työ) <input type="text" id="kKuvaus" maxlength="200"></label>
+    <label id="kKuvausL" hidden><span id="kKuvausOts">Mitä tehtiin</span> <input type="text" id="kKuvaus" maxlength="200"></label>
     <label><span id="kTyomaaOtsikko">Työmaa</span> <select id="kTyomaa"></select></label>
     <div class="kaksi">
       <label>Alkoi <input type="datetime-local" id="kSaapui" required></label>
@@ -276,9 +277,13 @@
       <label class="valinta" style="align-self:end;min-height:44px"><input type="checkbox" id="tAktiivinen" checked> Aktiivinen</label>
     </div>
     <div id="tLinkkiOsio" hidden style="display:grid;gap:8px">
-      <div class="eyebrow">Henkilökohtainen linkki</div>
-      <div class="linkkilaatikko" id="tLinkki"></div>
-      <div class="napit"><button class="btn btn-pieni" type="button" id="tKopioi">Kopioi linkki</button><a class="btn btn-pieni" id="tSms">Lähetä tekstiviestillä</a><button class="btn btn-pieni btn-vaara" type="button" id="tUusiLinkki">Luo uusi linkki</button></div>
+      <div class="eyebrow">Kirjautuminen</div>
+      <div class="tietorivi" id="tKirjTila"></div>
+      <div id="tKutsu" style="display:grid;gap:8px">
+        <div class="linkkilaatikko" id="tLinkki"></div>
+        <div class="napit"><button class="btn btn-pieni" type="button" id="tKopioi">Kopioi linkki</button><a class="btn btn-pieni" id="tSms">Lähetä tekstiviestillä</a><button class="btn btn-pieni btn-vaara" type="button" id="tUusiLinkki">Luo uusi linkki</button></div>
+      </div>
+      <div class="napit" id="tSalasanaNapit"><button class="btn btn-pieni btn-vaara" type="button" id="tNollaa">Nollaa salasana</button></div>
     </div>
     <p class="lomakevirhe" id="tVirhe" role="alert"></p>
     <div class="dialogi-napit">
@@ -373,10 +378,11 @@
   }
 
   // ===================== Tietojen haku =====================
+  const TEKIJA_SARAKKEET = 'id,nimi,yritys,puhelin,tuntihinta,avain,aktiivinen,luotu,tunnus,salasana_asetettu,lukittu_asti';   // salasanan tiivistettä ei haeta
   async function lataaPerustiedot() {
     const [w, t] = await Promise.all([
       db.from('tyomaat').select('*').order('nimi'),
-      db.from('tekijat').select('*').order('nimi')
+      db.from('tekijat').select(TEKIJA_SARAKKEET).order('nimi')
     ]);
     if (w.error || t.error) { TK.toast(TK.virhe(w.error || t.error), 'virhe'); return; }
     S.tyomaat = w.data; S.tekijat = t.data;
@@ -453,7 +459,9 @@
   const tekija = id => S.tekijaMap.get(id) || { nimi: '?', tuntihinta: null };
   const EI_TYOMAATA = { nimi: 'Ei kohdistettu työmaalle', asiakas: '', laskutushinta: null, lat: null, lon: null };
   const tyomaa = id => id == null ? EI_TYOMAATA : (S.tyomaaMap.get(id) || { nimi: '?', laskutushinta: null });
-  const TYYPPI = { tyomaa: 'Työmaalla', siirtyma: 'Siirtymä', muu: 'Muu työ' };
+  const TYYPPI = { tyomaa: 'Työmaalla', siirtyma: 'Siirtymä', matka: 'Matka-aika', muu: 'Muu työ' };
+  const KESTO = t => t === 'muu' || t === 'matka';                 // merkitty kestona, ei kellonaikoja
+  const SARAKE = { tyomaa: 'tyomaa', siirtyma: 'matka', matka: 'matka', muu: 'muu' };   // siirtymät lasketaan matka-aikaan
   const tyyppi = k => k.tyyppi || 'tyomaa';
 
   // Mihin kirjaus kohdistuu, tekstinä ja HTML:nä
@@ -461,12 +469,14 @@
     const w = k.tyomaa_id != null ? tyomaa(k.tyomaa_id).nimi : '';
     if (tyyppi(k) === 'siirtyma') return 'Siirtymä' + (w ? ' → ' + w : '');
     if (tyyppi(k) === 'muu') return 'Muu työ: ' + (k.kuvaus || '') + (w ? ' (' + w + ')' : '');
+    if (tyyppi(k) === 'matka') return 'Matka-aika → ' + w + (k.kuvaus ? ' (' + k.kuvaus + ')' : '');
     return w;
   }
   function kohdeHtml(k) {
     const w = k.tyomaa_id != null ? esc(tyomaa(k.tyomaa_id).nimi) : '';
     if (tyyppi(k) === 'siirtyma') return `<span class="pill move ei">Siirtymä</span>${w ? ' → ' + w : ''}`;
     if (tyyppi(k) === 'muu') return `<span class="pill muu ei">Muu työ</span> ${esc(k.kuvaus || '')}${w ? `<span class="muted"> · ${w}</span>` : ''}`;
+    if (tyyppi(k) === 'matka') return `<span class="pill move ei">Matka-aika</span> → ${w}${k.kuvaus ? `<span class="muted"> · ${esc(k.kuvaus)}</span>` : ''}`;
     return w;
   }
   const nimiJarjestys = (a, b) => a.localeCompare(b, 'fi');
@@ -482,7 +492,7 @@
     const pisteet = [];
     if (k.saapui_lat != null) pisteet.push({ lat: k.saapui_lat, lon: k.saapui_lon, tarkkuus: k.saapui_tarkkuus || 0, nimi: 'saapuessa' });
     if (k.lahti_lat != null) pisteet.push({ lat: k.lahti_lat, lon: k.lahti_lon, tarkkuus: k.lahti_tarkkuus || 0, nimi: 'lähtiessä' });
-    if (!pisteet.length) return tyyppi(k) === 'muu' ? { luokka: 'ei', teksti: '–', linkki: null } : { luokka: 'ei', teksti: 'Ei sijaintia', linkki: null };
+    if (!pisteet.length) return KESTO(tyyppi(k)) ? { luokka: 'ei', teksti: '–', linkki: null } : { luokka: 'ei', teksti: 'Ei sijaintia', linkki: null };
     const kartta = TK.karttalinkki(pisteet[0].lat, pisteet[0].lon);
     if (w.lat == null || tyyppi(k) !== 'tyomaa') return { luokka: '', teksti: 'Kartalla', linkki: kartta };
     let pahin = null;
@@ -560,8 +570,8 @@
         ${paiva ? `<td class="nw">${esc(TK.paiva(k.saapui))}</td>` : ''}
         <td class="nw">${esc(tekija(k.tekija_id).nimi)}</td>
         <td>${kohdeHtml(k)}</td>
-        <td class="n">${tyyppi(k) === 'muu' ? '–' : TK.aika(k.saapui)}</td>
-        <td class="n">${tyyppi(k) === 'muu' ? '<span class="muted">merkitty</span>' : k.lahti ? (TK.ymd(k.lahti) !== TK.ymd(k.saapui) ? esc(TK.paiva(k.lahti)) + ' ' : '') + TK.aika(k.lahti) : '<span class="pill on">käynnissä</span>'}</td>
+        <td class="n">${KESTO(tyyppi(k)) ? '–' : TK.aika(k.saapui)}</td>
+        <td class="n">${KESTO(tyyppi(k)) ? '<span class="muted">merkitty</span>' : k.lahti ? (TK.ymd(k.lahti) !== TK.ymd(k.saapui) ? esc(TK.paiva(k.lahti)) + ' ' : '') + TK.aika(k.lahti) : '<span class="pill on">käynnissä</span>'}</td>
         <td class="n">${h === null ? '–' : TK.num(h)}</td>
         <td class="nw">${sijaintiPill(k)}</td>
         <td class="komm">${esc(k.kommentti || '')}${k.huomio ? `<span class="huomio">${esc(k.huomio)}</span>` : ''}</td>
@@ -594,7 +604,7 @@
   function laskeYhteenveto(lista) {
     const valmiit = lista.filter(k => k.lahti);
     const perTyomaa = new Map(), perTekija = new Map(), risti = new Map();
-    const lajit = () => ({ tyomaa: 0, siirtyma: 0, muu: 0 });
+    const lajit = () => ({ tyomaa: 0, matka: 0, muu: 0 });
     for (const k of valmiit) {
       const h = TK.tunnit(k.saapui, k.lahti), laji = tyyppi(k);
       const t = tekija(k.tekija_id), w = tyomaa(k.tyomaa_id);
@@ -603,12 +613,12 @@
       const wkey = k.tyomaa_id ?? 'ei';
 
       const a = perTyomaa.get(wkey) || { w, tunnit: 0, laji: lajit(), kust: 0, lask: 0, tekijat: new Set(), hintaPuuttuu: false };
-      a.tunnit += h; a.laji[laji] += h; a.kust += kust; a.lask += lask || 0; a.tekijat.add(k.tekija_id);
+      a.tunnit += h; a.laji[SARAKE[laji] || 'tyomaa'] += h; a.kust += kust; a.lask += lask || 0; a.tekijat.add(k.tekija_id);
       if (t.tuntihinta == null) a.hintaPuuttuu = true;
       perTyomaa.set(wkey, a);
 
       const b = perTekija.get(k.tekija_id) || { t, tunnit: 0, laji: lajit(), kust: 0, paivat: new Set() };
-      b.tunnit += h; b.laji[laji] += h; b.kust += kust; b.paivat.add(TK.ymd(k.saapui));
+      b.tunnit += h; b.laji[SARAKE[laji] || 'tyomaa'] += h; b.kust += kust; b.paivat.add(TK.ymd(k.saapui));
       perTekija.set(k.tekija_id, b);
 
       const avain = k.tekija_id + ':' + wkey;
@@ -634,7 +644,7 @@
     const Y = laskeYhteenveto(suodatetut());
     $('yhtLuvut').innerHTML =
       luku(TK.num1(Y.tunnit) + ' h', 'Tunnit yhteensä') +
-      luku(`${TK.num1(Y.laji.siirtyma)} h / ${TK.num1(Y.laji.muu)} h`, 'Siirtymät / muu työ') +
+      luku(`${TK.num1(Y.laji.matka)} h / ${TK.num1(Y.laji.muu)} h`, 'Matka-aika / muu työ') +
       luku(TK.eur(Y.kust), 'Työkustannus') +
       luku(Y.lask ? TK.eur(Y.lask) : '–', 'Laskutettavissa (€/h-työmaat)');
 
@@ -642,30 +652,30 @@
     const h = n => n ? TK.num(n) : '<span class="muted">–</span>';
     const max = Math.max(1, ...Y.tyomaat.map(x => x.tunnit));
     $('yhtTyomaat').innerHTML = Y.tyomaat.length ? `<table>
-      <thead><tr><th>Työmaa</th><th>Asiakas</th><th class="n">Työmaalla</th><th class="n">Siirtymät</th><th class="n">Muu työ</th><th class="n">Yhteensä h</th><th></th><th class="n">Tekijöitä</th><th class="n">Työkustannus</th><th class="n">Laskutus</th></tr></thead>
+      <thead><tr><th>Työmaa</th><th>Asiakas</th><th class="n">Työmaalla</th><th class="n">Matka-aika</th><th class="n">Muu työ</th><th class="n">Yhteensä h</th><th></th><th class="n">Tekijöitä</th><th class="n">Työkustannus</th><th class="n">Laskutus</th></tr></thead>
       <tbody>${Y.tyomaat.map(x => `<tr class="${x.w === EI_TYOMAATA ? 'himmea' : ''}">
         <td>${esc(x.w.nimi)}</td><td>${esc(x.w.asiakas || '')}</td>
-        <td class="n">${h(x.laji.tyomaa)}</td><td class="n">${h(x.laji.siirtyma)}</td><td class="n">${h(x.laji.muu)}</td>
+        <td class="n">${h(x.laji.tyomaa)}</td><td class="n">${h(x.laji.matka)}</td><td class="n">${h(x.laji.muu)}</td>
         <td class="n"><b>${TK.num(x.tunnit)}</b></td>
         <td class="palkki-solu"><div class="palkki" style="width:${(x.tunnit / max * 100).toFixed(1)}%"></div></td>
         <td class="n">${x.tekijat.size}</td>
         <td class="n">${TK.eur(x.kust)}${x.hintaPuuttuu ? ' <span class="pill warn ei" title="Jonkun tekijän tuntihinta puuttuu">hinta puuttuu</span>' : ''}</td>
         <td class="n">${x.w.laskutushinta != null ? TK.eur(x.lask) : '–'}</td>
       </tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="2">Yhteensä</td><td class="n">${TK.num(Y.laji.tyomaa)}</td><td class="n">${TK.num(Y.laji.siirtyma)}</td><td class="n">${TK.num(Y.laji.muu)}</td><td class="n">${TK.num(Y.tunnit)}</td><td></td><td></td><td class="n">${TK.eur(Y.kust)}</td><td class="n">${Y.lask ? TK.eur(Y.lask) : '–'}</td></tr></tfoot>
+      <tfoot><tr><td colspan="2">Yhteensä</td><td class="n">${TK.num(Y.laji.tyomaa)}</td><td class="n">${TK.num(Y.laji.matka)}</td><td class="n">${TK.num(Y.laji.muu)}</td><td class="n">${TK.num(Y.tunnit)}</td><td></td><td></td><td class="n">${TK.eur(Y.kust)}</td><td class="n">${Y.lask ? TK.eur(Y.lask) : '–'}</td></tr></tfoot>
     </table>` : tyhja;
 
     $('yhtTekijat').innerHTML = Y.tekijat.length ? `<table>
-      <thead><tr><th>Tekijä</th><th>Yritys</th><th class="n">Päiviä</th><th class="n">Työmaalla</th><th class="n">Siirtymät</th><th class="n">Muu työ</th><th class="n">Yhteensä h</th><th class="n">€/h</th><th class="n">Yhteensä €</th></tr></thead>
+      <thead><tr><th>Tekijä</th><th>Yritys</th><th class="n">Päiviä</th><th class="n">Työmaalla</th><th class="n">Matka-aika</th><th class="n">Muu työ</th><th class="n">Yhteensä h</th><th class="n">€/h</th><th class="n">Yhteensä €</th></tr></thead>
       <tbody>${Y.tekijat.map(x => `<tr>
         <td>${esc(x.t.nimi)}</td><td>${esc(x.t.yritys || '')}</td>
         <td class="n">${x.paivat.size}</td>
-        <td class="n">${h(x.laji.tyomaa)}</td><td class="n">${h(x.laji.siirtyma)}</td><td class="n">${h(x.laji.muu)}</td>
+        <td class="n">${h(x.laji.tyomaa)}</td><td class="n">${h(x.laji.matka)}</td><td class="n">${h(x.laji.muu)}</td>
         <td class="n"><b>${TK.num(x.tunnit)}</b></td>
         <td class="n">${x.t.tuntihinta != null ? TK.num(Number(x.t.tuntihinta)) : '<span class="pill warn ei">puuttuu</span>'}</td>
         <td class="n">${TK.eur(x.kust)}</td>
       </tr>`).join('')}</tbody>
-      <tfoot><tr><td colspan="3">Yhteensä</td><td class="n">${TK.num(Y.laji.tyomaa)}</td><td class="n">${TK.num(Y.laji.siirtyma)}</td><td class="n">${TK.num(Y.laji.muu)}</td><td class="n">${TK.num(Y.tunnit)}</td><td></td><td class="n">${TK.eur(Y.kust)}</td></tr></tfoot>
+      <tfoot><tr><td colspan="3">Yhteensä</td><td class="n">${TK.num(Y.laji.tyomaa)}</td><td class="n">${TK.num(Y.laji.matka)}</td><td class="n">${TK.num(Y.laji.muu)}</td><td class="n">${TK.num(Y.tunnit)}</td><td></td><td class="n">${TK.eur(Y.kust)}</td></tr></tfoot>
     </table>` : tyhja;
 
     $('yhtRisti').innerHTML = Y.risti.length ? `<table>
@@ -701,8 +711,8 @@
       return {
         'Päivä': TK.pvm(k.saapui), 'Tekijä': t.nimi, 'Yritys': t.yritys || '', 'Tyyppi': TYYPPI[tyyppi(k)],
         'Työmaa': k.tyomaa_id != null ? w.nimi : '', 'Asiakas': k.tyomaa_id != null ? (w.asiakas || '') : '', 'Kuvaus': k.kuvaus || '',
-        'Saapui': tyyppi(k) === 'muu' ? '' : TK.aika(k.saapui),
-        'Lähti': tyyppi(k) === 'muu' ? '' : k.lahti ? (TK.ymd(k.lahti) !== TK.ymd(k.saapui) ? TK.pvm(k.lahti) + ' ' : '') + TK.aika(k.lahti) : 'käynnissä',
+        'Saapui': KESTO(tyyppi(k)) ? '' : TK.aika(k.saapui),
+        'Lähti': KESTO(tyyppi(k)) ? '' : k.lahti ? (TK.ymd(k.lahti) !== TK.ymd(k.saapui) ? TK.pvm(k.lahti) + ' ' : '') + TK.aika(k.lahti) : 'käynnissä',
         'Tunnit': h === null ? null : pyor(h),
         'Tuntihinta €': t.tuntihinta != null ? Number(t.tuntihinta) : null,
         'Kustannus €': h !== null && t.tuntihinta != null ? pyor(h * Number(t.tuntihinta)) : null,
@@ -711,14 +721,14 @@
       };
     });
     const tyo = Y.tyomaat.map(x => ({
-      'Työmaa': x.w.nimi, 'Asiakas': x.w.asiakas || '', 'Työmaalla h': pyor(x.laji.tyomaa), 'Siirtymät h': pyor(x.laji.siirtyma),
+      'Työmaa': x.w.nimi, 'Asiakas': x.w.asiakas || '', 'Työmaalla h': pyor(x.laji.tyomaa), 'Matka-aika h': pyor(x.laji.matka),
       'Muu työ h': pyor(x.laji.muu), 'Yhteensä h': pyor(x.tunnit), 'Tekijöitä': x.tekijat.size,
       'Työkustannus €': pyor(x.kust), 'Laskutushinta €/h': x.w.laskutushinta != null ? Number(x.w.laskutushinta) : null,
       'Laskutus €': x.w.laskutushinta != null ? pyor(x.lask) : null
     }));
     const tek = Y.tekijat.map(x => ({
       'Tekijä': x.t.nimi, 'Yritys': x.t.yritys || '', 'Päiviä': x.paivat.size, 'Työmaalla h': pyor(x.laji.tyomaa),
-      'Siirtymät h': pyor(x.laji.siirtyma), 'Muu työ h': pyor(x.laji.muu), 'Yhteensä h': pyor(x.tunnit),
+      'Matka-aika h': pyor(x.laji.matka), 'Muu työ h': pyor(x.laji.muu), 'Yhteensä h': pyor(x.tunnit),
       'Tuntihinta €': x.t.tuntihinta != null ? Number(x.t.tuntihinta) : null, 'Yhteensä €': pyor(x.kust)
     }));
     const ris = Y.risti.map(x => ({ 'Tekijä': x.t.nimi, 'Työmaa': x.w.nimi, 'Tunnit': pyor(x.tunnit), 'Työkustannus €': pyor(x.kust) }));
@@ -779,8 +789,10 @@
 
   function paivitaKirjausTyyppi() {
     const t = $('kTyyppi').value;
-    $('kKuvausL').hidden = t !== 'muu';
-    $('kTyomaaOtsikko').textContent = t === 'tyomaa' ? 'Työmaa' : t === 'siirtyma' ? 'Siirtymän kohde (työmaa)' : 'Kohdistus työmaalle (valinnainen)';
+    $('kKuvausL').hidden = !KESTO(t);
+    $('kKuvausOts').textContent = t === 'matka' ? 'Mistä mihin (vapaaehtoinen)' : 'Mitä tehtiin';
+    $('kTyomaaOtsikko').textContent = t === 'tyomaa' ? 'Työmaa' : t === 'siirtyma' ? 'Siirtymän kohde (työmaa)'
+      : t === 'matka' ? 'Työmaa, jolle matka-aika laskutetaan' : 'Kohdistus työmaalle (valinnainen)';
   }
   $('kTyyppi').addEventListener('change', paivitaKirjausTyyppi);
 
@@ -801,10 +813,11 @@
     const k = S.muokattava;
     const kTyyppi = $('kTyyppi').value, kTyomaa = Number($('kTyomaa').value) || null, kKuvaus = $('kKuvaus').value.trim();
     if (kTyyppi === 'tyomaa' && !kTyomaa) { $('kVirhe').textContent = 'Valitse työmaa.'; return; }
+    if (kTyyppi === 'matka' && !kTyomaa) { $('kVirhe').textContent = 'Valitse työmaa, jolle matka-aika laskutetaan.'; return; }
     if (kTyyppi === 'muu' && !kKuvaus) { $('kVirhe').textContent = 'Kirjoita, mitä tehtiin.'; return; }
-    if (kTyyppi === 'muu' && !lahti) { $('kVirhe').textContent = 'Muulle työlle tarvitaan myös loppuaika.'; return; }
+    if (KESTO(kTyyppi) && !lahti) { $('kVirhe').textContent = 'Tarvitaan myös loppuaika.'; return; }
     const rivi = {
-      tekija_id: Number($('kTekija').value), tyomaa_id: kTyomaa, tyyppi: kTyyppi, kuvaus: kTyyppi === 'muu' ? kKuvaus : null,
+      tekija_id: Number($('kTekija').value), tyomaa_id: kTyomaa, tyyppi: kTyyppi, kuvaus: KESTO(kTyyppi) ? (kKuvaus || null) : null,
       saapui: saapui.toISOString(), lahti: lahti ? lahti.toISOString() : null,
       kommentti: $('kKommentti').value.trim() || null
     };
@@ -918,8 +931,10 @@
   const slug = n => (n || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
   const linkki = t => new URL(`./?nimi=${slug(t.nimi)}&k=${encodeURIComponent(t.avain)}`, location.href).href;
+  const kirjautumisosoite = () => new URL('./', location.href).href;
   function smsLinkki(t) {
-    const viesti = `Hei ${t.nimi.split(' ')[0]}! Tässä oma linkkisi ${TK.cfg.yritys || ''} tuntikirjaukseen. Avaa se puhelimella ja lisää kotinäyttöön: ${linkki(t)}`;
+    const viesti = `Hei ${t.nimi.split(' ')[0]}! Tässä linkki ${TK.cfg.yritys || ''} tuntikirjaukseen: ${linkki(t)}\n\n` +
+      `Avaa se puhelimella ja luo itsellesi salasana. Jatkossa kirjaudut osoitteessa ${kirjautumisosoite()} puhelinnumerollasi ja salasanalla. Lisää sivu myös puhelimen kotinäyttöön.`;
     return `sms:${(t.puhelin || '').replace(/\s/g, '')}?&body=${encodeURIComponent(viesti)}`;
   }
   async function kopioi(teksti) {
@@ -931,11 +946,13 @@
     const nayta = $('naytaArkTekijat').checked;
     const lista = S.tekijat.filter(t => nayta || t.aktiivinen);
     $('tekijaTaulu').innerHTML = lista.length ? `<table>
-      <thead><tr><th>Nimi</th><th>Yritys</th><th>Puhelin</th><th class="n">€/h</th><th>Linkki</th><th>Tila</th><th></th></tr></thead>
+      <thead><tr><th>Nimi</th><th>Yritys</th><th>Puhelin</th><th class="n">€/h</th><th>Kirjautuminen</th><th>Tila</th><th></th></tr></thead>
       <tbody>${lista.map(t => `<tr class="${t.aktiivinen ? '' : 'himmea'}">
         <td><b>${esc(t.nimi)}</b></td><td>${esc(t.yritys || '')}</td><td class="nw">${esc(t.puhelin || '')}</td>
         <td class="n">${t.tuntihinta != null ? TK.num(Number(t.tuntihinta)) : '<span class="pill warn ei">puuttuu</span>'}</td>
-        <td><div class="linkkisolu">${t.aktiivinen ? `<button class="btn btn-pieni" type="button" data-kopioi="${t.id}">Kopioi</button><a class="btn btn-pieni" href="${esc(smsLinkki(t))}">Tekstiviesti</a>` : '–'}</div></td>
+        <td><div class="linkkisolu">${!t.aktiivinen ? '–'
+          : t.salasana_asetettu ? `<span class="pill on">Salasana käytössä</span>${t.lukittu_asti && new Date(t.lukittu_asti) > new Date() ? ' <span class="pill bad">Lukittu</span>' : ''}`
+          : `<span class="pill warn">Odottaa salasanaa</span><button class="btn btn-pieni" type="button" data-kopioi="${t.id}">Kopioi kutsu</button><a class="btn btn-pieni" href="${esc(smsLinkki(t))}">Tekstiviesti</a>`}</div></td>
         <td>${t.aktiivinen ? '<span class="pill on">Aktiivinen</span>' : '<span class="pill">Arkistoitu</span>'}</td>
         <td><button class="btn btn-pieni" type="button" data-tekija="${t.id}">Muokkaa</button></td>
       </tr>`).join('')}</tbody></table>`
@@ -956,9 +973,37 @@
     $('tVirhe').textContent = '';
     $('tLinkkiOsio').hidden = !t;
     nollaaVahvistus($('tUusiLinkki'), 'Luo uusi linkki');
-    if (t) { $('tLinkki').textContent = linkki(t); $('tSms').href = smsLinkki(t); }
+    nollaaVahvistus($('tNollaa'), 'Nollaa salasana');
+    if (t) piirraKirjautuminen(t);
     $('tekijaDialogi').showModal();
   }
+
+  function piirraKirjautuminen(t) {
+    const on = !!t.salasana_asetettu;
+    $('tKutsu').hidden = on;
+    $('tSalasanaNapit').hidden = !on;
+    if (on) {
+      const lukittu = t.lukittu_asti && new Date(t.lukittu_asti) > new Date();
+      $('tKirjTila').innerHTML = `<span>Kirjautuu puhelinnumerolla <b>${esc(t.tunnus || '')}</b> ja omalla salasanallaan osoitteessa ${esc(kirjautumisosoite())}</span>` +
+        (lukittu ? `<span style="color:var(--bad);font-weight:600">Lukittu väärien yritysten vuoksi klo ${TK.aika(t.lukittu_asti)} asti</span>` : '') +
+        `<span class="muted">Jos salasana unohtuu, nollaa se: tekijä saa uuden kutsulinkin ja luo uuden salasanan.</span>`;
+    } else {
+      $('tKirjTila').innerHTML = `<span>Ei vielä salasanaa. Lähetä kutsulinkki: tekijä avaa sen ja luo salasanan. Sen jälkeen linkki lakkaa toimimasta, ja hän kirjautuu puhelinnumerolla ja salasanalla.</span>`;
+      $('tLinkki').textContent = linkki(t); $('tSms').href = smsLinkki(t);
+    }
+  }
+
+  $('tNollaa').addEventListener('click', async () => {
+    const b = $('tNollaa');
+    if (!b.classList.contains('vahvista')) { b.classList.add('vahvista'); b.textContent = 'Vahvista: tekijä kirjautuu ulos kaikilta laitteilta'; return; }
+    const { data, error } = await db.rpc('nollaa_salasana', { p_tekija_id: S.muokattava.id });
+    if (error || !data) { $('tVirhe').textContent = TK.virhe(error || 'Nollaus ei onnistunut.'); return; }
+    nollaaVahvistus(b, 'Nollaa salasana');
+    await lataaPerustiedot(); piirraTekijat();
+    S.muokattava = S.tekijaMap.get(S.muokattava.id);
+    piirraKirjautuminen(S.muokattava);
+    TK.toast('Salasana nollattu. Lähetä tekijälle uusi kutsulinkki.');
+  });
   $('tKopioi').addEventListener('click', () => kopioi($('tLinkki').textContent));
   $('tUusiLinkki').addEventListener('click', async () => {
     const b = $('tUusiLinkki');
@@ -966,7 +1011,7 @@
     const { data, error } = await db.rpc('uusi_linkki', { p_tekija_id: S.muokattava.id });
     if (error || !data) { $('tVirhe').textContent = TK.virhe(error || 'Uutta linkkiä ei saatu luotua.'); return; }
     S.muokattava.avain = data;
-    $('tLinkki').textContent = linkki(S.muokattava); $('tSms').href = smsLinkki(S.muokattava);
+    piirraKirjautuminen(S.muokattava);
     nollaaVahvistus(b, 'Luo uusi linkki');
     TK.toast('Uusi linkki luotu. Lähetä se tekijälle.');
     await lataaPerustiedot(); piirraTekijat();
@@ -979,11 +1024,11 @@
       tuntihinta: $('tHinta').value === '' ? null : Number($('tHinta').value), aktiivinen: $('tAktiivinen').checked
     };
     const t = S.muokattava;
-    const { data, error } = t ? await db.from('tekijat').update(rivi).eq('id', t.id).select().single()
-                              : await db.from('tekijat').insert(rivi).select().single();
+    const { data, error } = t ? await db.from('tekijat').update(rivi).eq('id', t.id).select(TEKIJA_SARAKKEET).single()
+                              : await db.from('tekijat').insert(rivi).select(TEKIJA_SARAKKEET).single();
     if (error) { $('tVirhe').textContent = TK.virhe(error); return; }
     await lataaPerustiedot(); piirraTekijat();
-    if (!t) { TK.toast('Tekijä lisätty. Lähetä hänelle linkki.'); avaaTekija(S.tekijaMap.get(data.id)); }
+    if (!t) { TK.toast('Tekijä lisätty. Lähetä hänelle kutsulinkki.'); avaaTekija(S.tekijaMap.get(data.id)); }
     else { $('tekijaDialogi').close(); TK.toast('Tekijä tallennettu'); }
   });
 

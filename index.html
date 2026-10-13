@@ -75,10 +75,25 @@
   .historia .h-tyyppi { font-weight: 600; }
   .historia .h-korjaa { grid-column: 1 / -1; justify-self: start; margin-top: 4px; }
   .historia .h-merkki { color: var(--warn); font-size: .82rem; font-weight: 600; }
-  .aiempi { color: var(--muted); }
-  .aiempi summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
-  .aiempi label { margin-top: 8px; color: var(--ink); }
-  .aiempi input { max-width: 180px; }
+  .aiempi-paneeli { background: var(--on-soft); border: 2px solid var(--on); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
+  .aiempi-paneeli .rivi { display: flex; gap: 10px; align-items: center; }
+  .aiempi-paneeli input { max-width: 160px; font-size: 1.2rem; font-weight: 700; }
+  .muut { display: grid; gap: 8px; margin-top: 6px; }
+  .muut-napit { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .toiminto {
+    display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; text-align: left;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer;
+    min-height: 60px; box-shadow: var(--shadow);
+  }
+  .toiminto:hover { background: var(--surface-2); }
+  .toiminto svg { width: 26px; height: 26px; color: var(--accent); }
+  .toiminto b { display: block; font-size: 1rem; line-height: 1.2; }
+  .toiminto small { display: block; color: var(--muted); font-size: .85rem; line-height: 1.3; margin-top: 2px; }
+  .kirjaudu-kortti { background: var(--surface); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); display: grid; gap: 14px; border-top: 6px solid var(--on); }
+  .kirjaudu-kortti h2 { font-size: 1.8rem; }
+  .kirjaudu-kortti p { margin: 0; }
+  .kirjaudu-kortti .ilmoitus { background: var(--warn-soft); border-radius: 10px; padding: 10px 12px; }
+  .ulos { text-align: center; }
   .korjaus-kortti { background: var(--surface); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); border-top: 6px solid var(--move); display: grid; gap: 14px; }
   .korjaus-kortti h2 { font-size: 1.55rem; }
   .yhteenveto { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 4px 16px; }
@@ -129,6 +144,31 @@
 
   <section id="lataus" class="kortti" aria-live="polite">Ladataan…</section>
 
+  <!-- Kirjautuminen puhelinnumerolla ja salasanalla -->
+  <section id="kirjauduOsio" class="kirjaudu-kortti" hidden>
+    <h2>Kirjaudu</h2>
+    <p class="ilmoitus" id="kirjauduIlmoitus" hidden></p>
+    <form id="kirjauduLomake" style="display:grid;gap:14px">
+      <label>Puhelinnumero <input type="tel" id="kPuhelin" autocomplete="tel" inputmode="tel" required placeholder="040 123 4567"></label>
+      <label>Salasana <input type="password" id="kSalasana" autocomplete="current-password" required></label>
+      <button class="iso-nappi saavu" type="submit" id="kirjauduNappi" style="min-height:60px;font-size:1.4rem"><span>Kirjaudu</span></button>
+    </form>
+    <p class="pieni muted">Unohditko salasanan? Pyydä työnjohtoa nollaamaan se. Saat uuden linkin, jolla luot uuden salasanan.</p>
+  </section>
+
+  <!-- Ensimmäinen kerta: salasanan luonti kutsulinkillä -->
+  <section id="luoOsio" class="kirjaudu-kortti" hidden>
+    <h2>Luo salasana</h2>
+    <p>Jatkossa kirjaudut puhelinnumerollasi ja tällä salasanalla. Kirjautuminen säilyy tässä puhelimessa.</p>
+    <form id="luoLomake" style="display:grid;gap:14px">
+      <label>Puhelinnumero <input type="tel" id="lPuhelin" autocomplete="tel" inputmode="tel" required placeholder="040 123 4567"></label>
+      <label><span>Salasana <span class="vihje">vähintään 6 merkkiä</span></span><input type="password" id="lSalasana" autocomplete="new-password" minlength="6" required></label>
+      <label>Salasana uudelleen <input type="password" id="lSalasana2" autocomplete="new-password" minlength="6" required></label>
+      <label class="valinta"><input type="checkbox" id="lNayta"> Näytä salasana</label>
+      <button class="iso-nappi saavu" type="submit" id="luoNappi" style="min-height:60px;font-size:1.4rem"><span>Tallenna ja jatka</span></button>
+    </form>
+  </section>
+
   <section id="virhe" class="kortti virhe" hidden>
     <h2 id="virheOtsikko">Jokin meni vikaan</h2>
     <p id="virheTeksti"></p>
@@ -166,7 +206,8 @@
     </button>
 
     <div class="toissijaiset" id="toissijaiset">
-      <button class="btn" type="button" id="siirryNappi">Siirryn toiselle työmaalle</button>
+      <button class="btn koko" type="button" id="siirryNappi">Siirryn toiselle työmaalle</button>
+      <button class="btn" type="button" id="matkaNappiTyossa">Lisää matka-aika</button>
       <button class="btn" type="button" id="muuNappiTyossa">Lisää muu työ</button>
       <button class="btn koko" type="button" id="tyomaalleNappi">Siirryn työmaalle</button>
     </div>
@@ -175,15 +216,16 @@
 
   <!-- Muu työ -->
   <section id="muuLomake" class="muu-kortti" hidden>
-    <h2>Lisää muu työ</h2>
-    <label>Mitä teit?
+    <h2 id="muuOtsikko">Lisää muu työ</h2>
+    <p class="pieni muted" id="muuOhje" style="margin:0" hidden>Matka-aika laskutetaan asiakkaalta erikseen. Työmaalta toiselle siirtyminen kirjautuu automaattisesti Siirryn-napista.</p>
+    <label><span id="muuKuvausOts">Mitä teit?</span>
       <input type="text" id="muuKuvaus" maxlength="200" placeholder="Esim. tarvikehaku Bauhaus, varastolla">
     </label>
     <div class="kaksi-kenttaa">
       <label>Päivä <input type="date" id="muuPaiva"></label>
       <label>Kesto <select id="muuKesto"></select></label>
     </div>
-    <label><span>Mille työmaalle? <span class="vihje">(jos liittyy johonkin)</span></span>
+    <label><span>Mille työmaalle? <span class="vihje" id="muuTyomaaVihje">(jos liittyy johonkin)</span></span>
       <select id="muuTyomaa"><option value="">Ei tietylle työmaalle</option></select>
     </label>
     <div class="muu-napit">
@@ -199,16 +241,35 @@
       <span id="gpsTila" class="pill ei" hidden></span>
     </div>
     <div id="tyomaaLista" class="tyomaat" role="radiogroup" aria-label="Työmaa"></div>
+    <div id="aiempiPaneeli" class="aiempi-paneeli" hidden>
+      <label for="aiempiAika">Mihin aikaan saavuit tänään?</label>
+      <div class="rivi">
+        <input type="time" id="aiempiAika" step="300">
+        <button class="btn btn-pieni" type="button" id="aiempiPeru">Peru</button>
+      </div>
+    </div>
     <button id="saavuNappi" class="iso-nappi saavu" type="button" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg>
       <span>Saavuin työmaalle</span>
     </button>
     <p class="pieni muted" style="margin:0">Kellonaika ja puhelimen sijainti tallentuvat, kun painat.</p>
-    <details class="aiempi" id="aiempi">
-      <summary>Unohdin painaa saapuessa</summary>
-      <label>Saavuin tänään klo <input type="time" id="aiempiAika"></label>
-    </details>
-    <button class="btn" type="button" id="muuNappi" style="min-height:52px">Lisää muu työ (esim. tarvikehaku, varastolla)</button>
+    <div class="muut">
+      <div class="eyebrow">Muut toiminnot</div>
+      <div class="muut-napit">
+        <button class="toiminto" type="button" id="aiempiNappi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span><b>Saavuin aiemmin</b><small>Unohditko painaa? Valitse kellonaika.</small></span>
+        </button>
+        <button class="toiminto" type="button" id="matkaNappi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2-5a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5v4h-2"/><path d="M5 17H3v-4h18"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>
+          <span><b>Matka-aika</b><small>Ajo työmaalle, esim. varastolta.</small></span>
+        </button>
+        <button class="toiminto" type="button" id="muuNappi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+          <span><b>Muu työ</b><small>Tarvikehaku, varasto ym.</small></span>
+        </button>
+      </div>
+    </div>
   </section>
 
   <!-- Kirjauksen korjaus tai unohtuneen lisäys -->
@@ -221,7 +282,7 @@
       <label><span>Mitä tehtiin? <span class="vihje">(vapaaehtoinen)</span></span><textarea id="kKommentti" maxlength="1000"></textarea></label>
     </div>
     <div id="kMuuKentat" style="display:grid;gap:14px" hidden>
-      <label>Mitä teit? <input type="text" id="kKuvaus" maxlength="200"></label>
+      <label><span id="kKuvausOts">Mitä teit?</span> <input type="text" id="kKuvaus" maxlength="200"></label>
       <label>Kesto <select id="kKesto"></select></label>
       <label><span>Mille työmaalle? <span class="vihje">(jos liittyy johonkin)</span></span><select id="kMuuTyomaa"></select></label>
     </div>
@@ -266,8 +327,9 @@
     <summary>Lisää tämä sivu puhelimen kotinäyttöön</summary>
     <p><b>iPhone:</b> Safari → Jaa-painike (neliö ja nuoli) → <i>Lisää Koti-valikkoon</i>.</p>
     <p><b>Android:</b> Chrome → ⋮-valikko → <i>Lisää aloitusnäytölle</i>.</p>
-    <p>Linkki on henkilökohtainen. Älä jaa sitä muille.</p>
+    <p>Kirjautuminen säilyy tässä puhelimessa, kunnes kirjaudut ulos.</p>
   </details>
+  <div class="ulos" id="ulosRivi" hidden><button class="btn btn-linkki" type="button" id="ulosNappi">Kirjaudu ulos</button></div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
@@ -279,17 +341,49 @@
   const AVAIN_KEY = 'tk_avain', TYOMAA_KEY = 'tk_viimeisin_tyomaa';
 
   let db = null, avain = null, tila = null, sijainti = null, sijaintiVirhe = null, valittu = null;
-  let naytaMuu = false, naytaValinta = false, korjattava = null;
+  let naytaMuu = false, muuTyyppi = 'muu', naytaValinta = false, korjattava = null;
+  const KESTO = t => t === 'muu' || t === 'matka';   // kestona merkittävät kirjaukset
   const VIIKKO_MS = 7 * 86400000;
   const onIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   // ---------- Avain linkistä tai muistista ----------
   const url = new URL(location.href);
-  avain = url.searchParams.get('k') || TK.lue(AVAIN_KEY);
-  if (url.searchParams.get('k')) TK.tallenna(AVAIN_KEY, avain);
+  const linkkiAvain = url.searchParams.get('k');
+  avain = linkkiAvain || TK.lue(AVAIN_KEY);
+
+  // Poistaa avaimen osoiteriviltä (kotinäytön kuvake ja jaettu osoite eivät sisällä sitä)
+  function siivoaOsoite() {
+    const u = new URL(location.href);
+    if (!u.searchParams.has('k')) return;
+    u.searchParams.delete('k');
+    history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+  }
+  function kirjauduSisaan(uusiAvain) {
+    avain = uusiAvain;
+    TK.tallenna(AVAIN_KEY, uusiAvain);
+    siivoaOsoite();
+  }
+  function poistuTila() {
+    tila = null; korjattava = null; naytaMuu = false; naytaValinta = false;
+    $('historia').hidden = true; $('omaYhteenveto').hidden = true; $('sijaintiOhje').hidden = true; $('ulosRivi').hidden = true;
+    $('tervehdys').textContent = 'Tuntikirjaus';
+  }
+  function naytaKirjaudu(ilmoitus = '') {
+    poistuTila();
+    naytaVain('kirjauduOsio');
+    $('kirjauduIlmoitus').textContent = ilmoitus;
+    $('kirjauduIlmoitus').hidden = !ilmoitus;
+  }
+  function naytaLuo() {
+    const nimi = tila.nimi.split(' ')[0], puhelin = tila.puhelin;
+    poistuTila();
+    $('tervehdys').textContent = 'Hei, ' + nimi + '!';
+    naytaVain('luoOsio');
+    if (!$('lPuhelin').value && puhelin) $('lPuhelin').value = puhelin;
+  }
   if (TK.cfg.yritys) $('yritys').textContent = TK.cfg.yritys + ' · Tuntikirjaus';
 
-  const OSIOT = ['lataus', 'virhe', 'kaynnissa', 'muuLomake', 'valinta', 'korjausLomake'];
+  const OSIOT = ['lataus', 'virhe', 'kaynnissa', 'muuLomake', 'valinta', 'korjausLomake', 'kirjauduOsio', 'luoOsio'];
   function naytaVain(...idt) { for (const id of OSIOT) $(id).hidden = !idt.includes(id); }
 
   function virhe(otsikko, teksti, uudelleen = true) {
@@ -448,7 +542,7 @@
     $('lahdeNappi').hidden = siirtyma && !unohtui;
     $('siirryNappi').hidden = a.tyyppi !== 'tyomaa' || unohtui;
     $('muuNappiTyossa').hidden = unohtui || naytaMuu || siirtyma;
-    $('muuNappiTyossa').classList.toggle('koko', a.tyyppi !== 'tyomaa');
+    $('matkaNappiTyossa').hidden = unohtui || naytaMuu || siirtyma;
     $('tyomaalleNappi').hidden = a.tyyppi !== 'muu' || unohtui || naytaValinta;
     $('peruSiirtyma').hidden = !siirtyma || unohtui;
     $('toissijaiset').hidden = [...$('toissijaiset').children].every(b => b.hidden);
@@ -477,8 +571,14 @@
     paiva.max = tanaan;
     paiva.min = TK.ymd(new Date(Date.now() - 31 * 86400000));
     if (!paiva.value) paiva.value = tanaan;
+    const matka = muuTyyppi === 'matka';
+    $('muuOtsikko').textContent = matka ? 'Lisää matka-aika' : 'Lisää muu työ';
+    $('muuOhje').hidden = !matka;
+    $('muuKuvausOts').innerHTML = matka ? 'Mistä mihin? <span class="vihje">(vapaaehtoinen)</span>' : 'Mitä teit?';
+    $('muuKuvaus').placeholder = matka ? 'Esim. varasto → työmaa' : 'Esim. tarvikehaku Bauhaus, varastolla';
+    $('muuTyomaaVihje').textContent = matka ? '(pakollinen, laskutetaan tältä asiakkaalta)' : '(jos liittyy johonkin)';
     const sel = $('muuTyomaa'), arvo = sel.value || (tila.avoin && tila.avoin.tyomaa_id ? String(tila.avoin.tyomaa_id) : '');
-    sel.innerHTML = '<option value="">Ei tietylle työmaalle</option>' +
+    sel.innerHTML = `<option value="">${matka ? 'Valitse työmaa' : 'Ei tietylle työmaalle'}</option>` +
       tila.tyomaat.map(w => `<option value="${w.id}">${TK.esc(w.nimi)}</option>`).join('');
     sel.value = arvo;
   }
@@ -486,6 +586,7 @@
   function kohdeTeksti(k) {
     if (k.tyyppi === 'siirtyma') return 'Siirtymä' + (k.tyomaa ? ' → ' + k.tyomaa : '');
     if (k.tyyppi === 'muu') return 'Muu työ: ' + (k.kuvaus || '') + (k.tyomaa ? ' (' + k.tyomaa + ')' : '');
+    if (k.tyyppi === 'matka') return 'Matka-aika → ' + (k.tyomaa || '') + (k.kuvaus ? ' (' + k.kuvaus + ')' : '');
     return k.tyomaa;
   }
 
@@ -501,7 +602,7 @@
           <span class="h-paiva">${TK.esc(TK.paiva(k.saapui))}</span>
           <span class="h-tunnit">${TK.num(TK.tunnit(k.saapui, k.lahti))} h</span>
           <span class="h-tyomaa">${TK.esc(kohdeTeksti(k))}</span>
-          <span class="h-aika">${k.tyyppi === 'muu' ? 'merkitty' : TK.aika(k.saapui) + '–' + TK.aika(k.lahti)}</span>
+          <span class="h-aika">${KESTO(k.tyyppi) ? 'merkitty' : TK.aika(k.saapui) + '–' + TK.aika(k.lahti)}</span>
           <button class="btn btn-pieni h-korjaa" type="button" data-korjaa="${k.id}">Korjaa</button>
         </li>`).join('')
       : '<li><span class="tyhja">Ei valmiita kirjauksia viimeisen viikon ajalta.</span></li>';
@@ -530,15 +631,17 @@
   }
 
   function piirraKorjaus() {
-    const k = korjattava, uusi = !!k.uusi, muu = !uusi && k.tyyppi === 'muu';
+    const k = korjattava, uusi = !!k.uusi, muu = !uusi && KESTO(k.tyyppi);
     $('korjausOtsikko').textContent = uusi ? 'Lisää unohtunut kirjaus' : 'Korjaa kirjaus';
     $('kAikaKentat').hidden = muu;
     $('kMuuKentat').hidden = !muu;
     const maxAika = paikallinen(new Date()), minAika = paikallinen(new Date(Date.now() - VIIKKO_MS));
     if (muu) {
+      const matka = k.tyyppi === 'matka';
+      $('kKuvausOts').textContent = matka ? 'Mistä mihin? (vapaaehtoinen)' : 'Mitä teit?';
       $('kKuvaus').value = k.kuvaus || '';
       kestoValinnat($('kKesto'), (new Date(k.lahti) - new Date(k.saapui)) / 60000);
-      tyomaaValinnat($('kMuuTyomaa'), 'Ei tietylle työmaalle', k.tyomaa_id);
+      tyomaaValinnat($('kMuuTyomaa'), matka ? null : 'Ei tietylle työmaalle', k.tyomaa_id);
     } else {
       const siirtyma = !uusi && k.tyyppi === 'siirtyma';
       $('kTyomaaOts').textContent = siirtyma ? 'Siirtymän kohde (työmaa)' : 'Työmaa';
@@ -574,12 +677,12 @@
   $('kPeru').addEventListener('click', () => { korjattava = null; piirra(); });
 
   $('kTallenna').addEventListener('click', async () => {
-    const k = korjattava, uusi = !!k.uusi, muu = !uusi && k.tyyppi === 'muu';
+    const k = korjattava, uusi = !!k.uusi, muu = !uusi && KESTO(k.tyyppi);
     const nappi = $('kTallenna');
     let kutsu, param;
     if (muu) {
       const kuvaus = $('kKuvaus').value.trim();
-      if (!kuvaus) return TK.toast('Kirjoita lyhyesti, mitä teit.', 'virhe');
+      if (!kuvaus && k.tyyppi === 'muu') return TK.toast('Kirjoita lyhyesti, mitä teit.', 'virhe');
       kutsu = 'korjaa_kirjaus';
       param = { p_avain: avain, p_id: k.id, p_kuvaus: kuvaus, p_kesto_min: Number($('kKesto').value),
                 p_tyomaa_id: Number($('kMuuTyomaa').value) || null };
@@ -620,7 +723,8 @@
     return { alku: ymd(new Date(nyt.getFullYear(), nyt.getMonth(), 1, 12)), loppu: ymd(new Date(nyt.getFullYear(), nyt.getMonth() + 1, 0, 12)) };
   }
   const pvmTeksti = ymd => { const [y, m, d] = ymd.split('-'); return `${Number(d)}.${Number(m)}.${y}`; };
-  const LAJI = { tyomaa: 'Työmaalla', siirtyma: 'Siirtymä', muu: 'Muu työ' };
+  const LAJI = { tyomaa: 'Työmaalla', siirtyma: 'Matka-aika (siirtymä)', matka: 'Matka-aika', muu: 'Muu työ' };
+  const SARAKE = { tyomaa: 'tyomaa', siirtyma: 'matka', matka: 'matka', muu: 'muu' };
 
   async function lataaYhteenveto() {
     const j = yvJakso();
@@ -640,8 +744,8 @@
     for (const k of yv.kirjaukset) {
       const h = TK.tunnit(k.saapui, k.lahti);
       const nimi = k.tyomaa || 'Ei tietylle työmaalle';
-      const x = per.get(nimi) || { nimi, tyomaa: 0, siirtyma: 0, muu: 0, yht: 0 };
-      x[k.tyyppi] += h; x.yht += h; yht += h;
+      const x = per.get(nimi) || { nimi, tyomaa: 0, matka: 0, muu: 0, yht: 0 };
+      x[SARAKE[k.tyyppi] || 'tyomaa'] += h; x.yht += h; yht += h;
       per.set(nimi, x);
     }
     return { rivit: [...per.values()].sort((a, b) => b.yht - a.yht), yht };
@@ -654,8 +758,8 @@
     $('yvSisalto').classList.remove('muted');
     $('yvSisalto').innerHTML = `<div class="muted pieni">${pvmTeksti(yv.jakso.alku)} – ${pvmTeksti(yv.jakso.loppu)} · ${yv.kirjaukset.length} kirjausta</div>
       ${rivit.length ? `<div style="overflow-x:auto"><table class="yv-taulu">
-        <thead><tr><th>Työmaa</th><th class="n">Työ</th><th class="n">Siirt.</th><th class="n">Muu</th><th class="n">Yht. h</th></tr></thead>
-        <tbody>${rivit.map(x => `<tr><td>${TK.esc(x.nimi)}</td><td class="n">${h(x.tyomaa)}</td><td class="n">${h(x.siirtyma)}</td><td class="n">${h(x.muu)}</td><td class="n"><b>${TK.num(x.yht)}</b></td></tr>`).join('')}</tbody>
+        <thead><tr><th>Työmaa</th><th class="n">Työ</th><th class="n">Matka</th><th class="n">Muu</th><th class="n">Yht. h</th></tr></thead>
+        <tbody>${rivit.map(x => `<tr><td>${TK.esc(x.nimi)}</td><td class="n">${h(x.tyomaa)}</td><td class="n">${h(x.matka)}</td><td class="n">${h(x.muu)}</td><td class="n"><b>${TK.num(x.yht)}</b></td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="4">Yhteensä</td><td class="n">${TK.num(yht)} h</td></tr></tfoot>
       </table></div>
       <div class="yv-summa">${TK.num(yht)} h${hinta != null ? ` × ${TK.num(hinta)} €/h = ${new Intl.NumberFormat('fi-FI', { style: 'currency', currency: 'EUR' }).format(yht * hinta)}` : ''}</div>`
@@ -677,7 +781,7 @@
       const hinta = Number(yv.tuntihinta) > 0 ? Number(yv.tuntihinta) : null;
       const kirj = yv.kirjaukset.map(k => ({
         'Päivä': TK.pvm(k.saapui), 'Tyyppi': LAJI[k.tyyppi], 'Työmaa': k.tyomaa || '', 'Kuvaus': k.kuvaus || '',
-        'Alkoi': k.tyyppi === 'muu' ? '' : TK.aika(k.saapui), 'Päättyi': k.tyyppi === 'muu' ? '' : TK.aika(k.lahti),
+        'Alkoi': KESTO(k.tyyppi) ? '' : TK.aika(k.saapui), 'Päättyi': KESTO(k.tyyppi) ? '' : TK.aika(k.lahti),
         'Tunnit': pyor(TK.tunnit(k.saapui, k.lahti)), 'Kommentti': k.kommentti || ''
       }));
       const { rivit, yht } = yvLaske();
@@ -686,8 +790,8 @@
         ['Tekijä', yv.nimi], ['Yritys', yv.yritys || ''],
         ['Aikaväli', `${pvmTeksti(yv.jakso.alku)} – ${pvmTeksti(yv.jakso.loppu)}`],
         ['Tilaaja', TK.cfg.yritys || ''], [],
-        ['Työmaa', 'Työmaalla h', 'Siirtymät h', 'Muu työ h', 'Yhteensä h'],
-        ...rivit.map(x => [x.nimi, pyor(x.tyomaa), pyor(x.siirtyma), pyor(x.muu), pyor(x.yht)]),
+        ['Työmaa', 'Työmaalla h', 'Matka-aika h', 'Muu työ h', 'Yhteensä h'],
+        ...rivit.map(x => [x.nimi, pyor(x.tyomaa), pyor(x.matka), pyor(x.muu), pyor(x.yht)]),
         ['Yhteensä', '', '', '', pyor(yht)]
       ];
       if (hinta != null) aoa.push([], ['Tuntihinta €', hinta], ['Summa €', pyor(yht * hinta)]);
@@ -722,21 +826,91 @@
   // ---------- Tietojen haku ----------
   async function lataa(hiljaa = false) {
     if (!TK.konfiguroitu()) return virhe('Sivua ei ole vielä otettu käyttöön', 'Asetukset puuttuvat (config.js).', false);
-    if (!avain) return virhe('Avaa sivu omalla linkilläsi', 'Saat henkilökohtaisen linkin työnjohdolta, esimerkiksi tekstiviestillä. Avaa se tällä puhelimella.', false);
+    db = db || TK.client();
+    if (!avain) return naytaKirjaudu();
     if (!hiljaa) naytaVain('lataus');
     try {
-      db = db || TK.client();
       const { data, error } = await db.rpc('tekija_tila', { p_avain: avain });
       if (error) throw error;
       tila = data;
+      if (!tila.salasana) return naytaLuo();        // ensimmäinen kerta: luodaan salasana
+      if (avain !== TK.lue(AVAIN_KEY)) TK.tallenna(AVAIN_KEY, avain);
+      siivoaOsoite();
+      $('ulosRivi').hidden = false;
       piirra();
     } catch (e) {
       const v = TK.virhe(e);
-      if (hiljaa && !/Linkki ei ole voimassa/.test(v)) return;
-      if (/Linkki ei ole voimassa/.test(v)) virhe('Linkki ei ole voimassa', v, false);
-      else virhe('Tietoja ei saatu ladattua', v);
+      if (/Linkki ei ole voimassa/.test(v)) {
+        const tallennettu = TK.lue(AVAIN_KEY);
+        if (avain === linkkiAvain && tallennettu && tallennettu !== avain) {
+          avain = tallennettu; siivoaOsoite(); return lataa(hiljaa);   // vanha linkki, mutta laite on jo kirjautunut
+        }
+        try { localStorage.removeItem(AVAIN_KEY); } catch (_) {}
+        avain = null;
+        return naytaKirjaudu(linkkiAvain ? 'Tämä linkki on jo käytetty. Kirjaudu puhelinnumerolla ja salasanalla.' : 'Kirjautuminen on vanhentunut. Kirjaudu uudelleen.');
+      }
+      if (hiljaa) return;
+      virhe('Tietoja ei saatu ladattua', v);
     }
   }
+
+  // ---------- Kirjautuminen, salasanan luonti, uloskirjautuminen ----------
+  $('kirjauduLomake').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nappi = $('kirjauduNappi'), teksti = nappi.querySelector('span');
+    nappi.disabled = true; teksti.textContent = 'Kirjaudutaan…';
+    try {
+      db = db || TK.client();
+      const { data, error } = await db.rpc('kirjaudu', { p_puhelin: $('kPuhelin').value, p_salasana: $('kSalasana').value });
+      if (error) throw error;
+      if (data.virhe) { TK.toast(data.virhe, 'virhe'); return; }
+      $('kSalasana').value = '';
+      kirjauduSisaan(data.avain);
+      await lataa();
+      if (tila && (!tila.avoin || tila.avoin.tyyppi !== 'tyomaa')) haeSijainti();
+    } catch (err) {
+      TK.toast(TK.virhe(err), 'virhe');
+    } finally {
+      nappi.disabled = false; teksti.textContent = 'Kirjaudu';
+    }
+  });
+
+  $('lNayta').addEventListener('change', () => {
+    const t = $('lNayta').checked ? 'text' : 'password';
+    $('lSalasana').type = t; $('lSalasana2').type = t;
+  });
+
+  $('luoLomake').addEventListener('submit', async e => {
+    e.preventDefault();
+    if ($('lSalasana').value.length < 6) return TK.toast('Salasanassa pitää olla vähintään 6 merkkiä.', 'virhe');
+    if ($('lSalasana').value !== $('lSalasana2').value) return TK.toast('Salasanat eivät ole samat.', 'virhe');
+    const nappi = $('luoNappi'), teksti = nappi.querySelector('span');
+    nappi.disabled = true; teksti.textContent = 'Tallennetaan…';
+    try {
+      const { data, error } = await db.rpc('aseta_salasana', { p_avain: avain, p_puhelin: $('lPuhelin').value, p_salasana: $('lSalasana').value });
+      if (error) throw error;
+      $('lSalasana').value = ''; $('lSalasana2').value = '';
+      kirjauduSisaan(data.avain);
+      tila = data.tila;
+      $('ulosRivi').hidden = false;
+      piirra();
+      TK.toast('Salasana tallennettu. Jatkossa kirjaudut puhelinnumerolla ja salasanalla.');
+      haeSijainti();
+    } catch (err) {
+      TK.toast(TK.virhe(err), 'virhe');
+    } finally {
+      nappi.disabled = false; teksti.textContent = 'Tallenna ja jatka';
+    }
+  });
+
+  $('ulosNappi').addEventListener('click', () => {
+    const b = $('ulosNappi');
+    if (!b.classList.contains('vahvista')) { b.classList.add('vahvista'); b.textContent = 'Paina uudelleen kirjautuaksesi ulos'; return; }
+    b.classList.remove('vahvista'); b.textContent = 'Kirjaudu ulos';
+    try { localStorage.removeItem(AVAIN_KEY); } catch (_) {}
+    avain = null;
+    naytaKirjaudu('Olet kirjautunut ulos.');
+  });
 
   async function haeSijainti() {
     kasitteleSijainti(await TK.sijainti(120000));
@@ -790,18 +964,36 @@
     piirraValinta();
   });
 
+  // "Saavuin aiemmin": valittu kellonaika näkyy suoraan isossa napissa
+  function saavuTeksti() {
+    const t = $('saavuNappi').querySelector('span');
+    const v = !$('aiempiPaneeli').hidden && $('aiempiAika').value;
+    t.textContent = v ? `Saavuin klo ${v.replace(':', '.')}` : 'Saavuin työmaalle';
+  }
+  function suljeAiempi() { $('aiempiPaneeli').hidden = true; $('aiempiAika').value = ''; $('aiempiNappi').hidden = false; saavuTeksti(); }
+  $('aiempiNappi').addEventListener('click', () => {
+    const d = new Date(Date.now() - 30 * 60000);
+    d.setMinutes(Math.floor(d.getMinutes() / 5) * 5);
+    $('aiempiAika').value = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    $('aiempiPaneeli').hidden = false; $('aiempiNappi').hidden = true;
+    saavuTeksti();
+    $('aiempiPaneeli').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    $('aiempiAika').focus();
+  });
+  $('aiempiAika').addEventListener('input', saavuTeksti);
+  $('aiempiPeru').addEventListener('click', suljeAiempi);
+
   $('saavuNappi').addEventListener('click', () => {
     const nappi = $('saavuNappi'), teksti = nappi.querySelector('span');
     let alkoi = null;
-    if ($('aiempi').open && $('aiempiAika').value) {
+    if (!$('aiempiPaneeli').hidden && $('aiempiAika').value) {
       const [hh, mm] = $('aiempiAika').value.split(':').map(Number);
       alkoi = new Date(); alkoi.setHours(hh, mm, 0, 0);
       if (alkoi > new Date()) return TK.toast('Saapumisaika ei voi olla tulevaisuudessa.', 'virhe');
     }
     aloita('tyomaa', { tyomaaId: valittu, alkoi, nappi, tekstiEl: teksti, palautus: () => {
-      teksti.textContent = 'Saavuin työmaalle'; nappi.disabled = !valittu;
-      if (!$('valinta').hidden) return;
-      $('aiempi').open = false; $('aiempiAika').value = '';
+      nappi.disabled = !valittu;
+      if ($('valinta').hidden) suljeAiempi(); else saavuTeksti();
     } });
   });
 
@@ -810,28 +1002,36 @@
     aloita('siirtyma', { nappi, tekstiEl: nappi, palautus: () => { nappi.textContent = 'Siirryn toiselle työmaalle'; } });
   });
 
-  const avaaMuu = () => { naytaMuu = true; naytaValinta = false; piirra(); $('muuKuvaus').focus(); };
-  $('muuNappi').addEventListener('click', avaaMuu);
-  $('muuNappiTyossa').addEventListener('click', avaaMuu);
+  const avaaMuu = tyyppi => () => {
+    if (muuTyyppi !== tyyppi) { $('muuKuvaus').value = ''; $('muuTyomaa').value = ''; }
+    muuTyyppi = tyyppi; naytaMuu = true; naytaValinta = false; piirra();
+    (tyyppi === 'matka' ? $('muuTyomaa') : $('muuKuvaus')).focus();
+  };
+  $('muuNappi').addEventListener('click', avaaMuu('muu'));
+  $('muuNappiTyossa').addEventListener('click', avaaMuu('muu'));
+  $('matkaNappi').addEventListener('click', avaaMuu('matka'));
+  $('matkaNappiTyossa').addEventListener('click', avaaMuu('matka'));
   $('muuPeru').addEventListener('click', () => { naytaMuu = false; piirra(); });
   $('muuTallenna').addEventListener('click', async () => {
-    const kuvaus = $('muuKuvaus').value.trim();
-    if (!kuvaus) { TK.toast('Kirjoita lyhyesti, mitä teit.', 'virhe'); $('muuKuvaus').focus(); return; }
+    const kuvaus = $('muuKuvaus').value.trim(), matka = muuTyyppi === 'matka';
+    const tyomaaId = Number($('muuTyomaa').value) || null;
+    if (!kuvaus && !matka) { TK.toast('Kirjoita lyhyesti, mitä teit.', 'virhe'); $('muuKuvaus').focus(); return; }
+    if (matka && !tyomaaId) { TK.toast('Valitse työmaa, jolle matka-aika kuuluu.', 'virhe'); $('muuTyomaa').focus(); return; }
     if (!$('muuPaiva').value) { TK.toast('Valitse päivä.', 'virhe'); return; }
     const nappi = $('muuTallenna');
     nappi.disabled = true; nappi.textContent = 'Tallennetaan…';
     const kesto = Number($('muuKesto').value);
     try {
-      const { data, error } = await db.rpc('lisaa_muu', {
+      const { data, error } = await db.rpc(matka ? 'lisaa_matka' : 'lisaa_muu', {
         p_avain: avain, p_paiva: $('muuPaiva').value, p_kesto_min: kesto,
-        p_kuvaus: kuvaus, p_tyomaa_id: Number($('muuTyomaa').value) || null
+        p_kuvaus: kuvaus || null, p_tyomaa_id: tyomaaId
       });
       if (error) throw error;
       tila = data;
       naytaMuu = false;
       $('muuKuvaus').value = ''; $('muuTyomaa').value = ''; $('muuPaiva').value = ''; $('muuKesto').value = '60';
       piirra();
-      TK.toast(`Muu työ kirjattu: ${TK.num(kesto / 60)} h`);
+      TK.toast(`${matka ? 'Matka-aika' : 'Muu työ'} kirjattu: ${TK.num(kesto / 60)} h`);
     } catch (e) {
       TK.toast(TK.virhe(e), 'virhe');
     } finally {
@@ -896,12 +1096,12 @@
   $('uudelleen').addEventListener('click', () => lataa());
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && tila) lataa(true).then(() => { if (tila && (!tila.avoin || tila.avoin.tyyppi === 'siirtyma')) haeSijainti(); });
+    if (document.visibilityState === 'visible' && tila && avain) lataa(true).then(() => { if (tila && tila.salasana && (!tila.avoin || tila.avoin.tyyppi === 'siirtyma')) haeSijainti(); });
   });
 
   paivitaKello();
   setInterval(paivitaKello, 20000);
-  lataa().then(() => { if (tila && (!tila.avoin || tila.avoin.tyyppi !== 'tyomaa')) haeSijainti(); });
+  lataa().then(() => { if (tila && tila.salasana && (!tila.avoin || tila.avoin.tyyppi !== 'tyomaa')) haeSijainti(); });
 })();
 </script>
 </body>
