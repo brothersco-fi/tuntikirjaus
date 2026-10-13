@@ -649,7 +649,7 @@
 
   function piirraYhteenveto() {
     const { rivit, yht } = yvLaske();
-    const hinta = yv.tuntihinta != null ? Number(yv.tuntihinta) : null;
+    const hinta = Number(yv.tuntihinta) > 0 ? Number(yv.tuntihinta) : null;
     const h = n => n ? TK.num(n) : '–';
     $('yvSisalto').classList.remove('muted');
     $('yvSisalto').innerHTML = `<div class="muted pieni">${pvmTeksti(yv.jakso.alku)} – ${pvmTeksti(yv.jakso.loppu)} · ${yv.kirjaukset.length} kirjausta</div>
@@ -674,7 +674,7 @@
     try {
       if (!window.XLSX) await lataaSkripti('https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js');
       const pyor = n => Math.round(n * 100) / 100;
-      const hinta = yv.tuntihinta != null ? Number(yv.tuntihinta) : null;
+      const hinta = Number(yv.tuntihinta) > 0 ? Number(yv.tuntihinta) : null;
       const kirj = yv.kirjaukset.map(k => ({
         'Päivä': TK.pvm(k.saapui), 'Tyyppi': LAJI[k.tyyppi], 'Työmaa': k.tyomaa || '', 'Kuvaus': k.kuvaus || '',
         'Alkoi': k.tyyppi === 'muu' ? '' : TK.aika(k.saapui), 'Päättyi': k.tyyppi === 'muu' ? '' : TK.aika(k.lahti),
