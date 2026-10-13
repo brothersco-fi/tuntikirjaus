@@ -15,6 +15,10 @@
 --     näkevät ja muokkaavat tietoja hallintasivulla.
 -- =====================================================================
 
+-- Salasanojen tiivisteet (Supabasessa pgcrypto on valmiina extensions-skeemassa)
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
 -- ---------- Apufunktio: satunnainen 22 merkin avain linkkiin ----------
 create or replace function public.uusi_avain()
 returns text language sql volatile as $$
@@ -69,15 +73,23 @@ create table if not exists public.kirjaukset (
 -- Päivitys 2 (siirtymät ja muu työ): turvallinen ajaa myös olemassa olevaan tietokantaan
 alter table public.kirjaukset add column if not exists tyyppi text not null default 'tyomaa';
 alter table public.kirjaukset add column if not exists kuvaus text;
+-- Päivitys 4 (tekijän salasana): kirjautuminen puhelinnumerolla ja salasanalla
+alter table public.tekijat add column if not exists tunnus text;               -- puhelinnumero numeroina, esim. 0401234567
+alter table public.tekijat add column if not exists salasana_hash text;
+alter table public.tekijat add column if not exists kirjautumisvirheet integer not null default 0;
+alter table public.tekijat add column if not exists lukittu_asti timestamptz;
+alter table public.tekijat add column if not exists salasana_asetettu boolean generated always as (salasana_hash is not null) stored;
+create unique index if not exists tekijat_tunnus_uniikki on public.tekijat (tunnus) where tunnus is not null;
+
 -- Päivitys 3 (tekijän korjaukset): alkuperäiset ajat talteen, kun tekijä korjaa kirjausta
 alter table public.kirjaukset add column if not exists alkup_saapui timestamptz;
 alter table public.kirjaukset add column if not exists alkup_lahti  timestamptz;
 alter table public.kirjaukset add column if not exists korjattu     timestamptz;
 alter table public.kirjaukset alter column tyomaa_id drop not null;
 alter table public.kirjaukset drop constraint if exists kirjaukset_tyyppi_check;
-alter table public.kirjaukset add constraint kirjaukset_tyyppi_check check (tyyppi in ('tyomaa', 'siirtyma', 'muu'));
+alter table public.kirjaukset add constraint kirjaukset_tyyppi_check check (tyyppi in ('tyomaa', 'siirtyma', 'matka', 'muu'));
 alter table public.kirjaukset drop constraint if exists kirjaukset_tyomaa_pakollinen;
-alter table public.kirjaukset add constraint kirjaukset_tyomaa_pakollinen check (tyyppi <> 'tyomaa' or tyomaa_id is not null);
+alter table public.kirjaukset add constraint kirjaukset_tyomaa_pakollinen check (tyyppi not in ('tyomaa', 'matka') or tyomaa_id is not null);
 alter table public.kirjaukset drop constraint if exists kirjaukset_kuvaus_pakollinen;
 alter table public.kirjaukset add constraint kirjaukset_kuvaus_pakollinen check (tyyppi <> 'muu' or length(trim(coalesce(kuvaus, ''))) > 0);
 
@@ -132,6 +144,8 @@ begin
 
   return json_build_object(
     'nimi', t.nimi,
+    'puhelin', t.puhelin,
+    'salasana', t.salasana_hash is not null,
     'tyomaat', coalesce((
       select json_agg(json_build_object(
                'id', w.id, 'nimi', w.nimi, 'osoite', w.osoite,
@@ -153,14 +167,14 @@ begin
   );
 end $$;
 
--- Sisäinen apufunktio: estää päällekkäiset työmaa-/siirtymäkirjaukset (muu työ ei ole kellonaikasidottu)
+-- Sisäinen apufunktio: estää päällekkäiset työmaa-/siirtymäkirjaukset (muu työ ja matka-aika eivät ole kellonaikasidottuja)
 create or replace function public.tarkista_paallekkain(p_tekija bigint, p_alku timestamptz, p_loppu timestamptz, p_ohita bigint)
 returns void language plpgsql security definer set search_path = public, pg_temp as $$
 declare
   v public.kirjaukset;
 begin
   select * into v from public.kirjaukset k
-  where k.tekija_id = p_tekija and k.tyyppi <> 'muu' and k.id is distinct from p_ohita
+  where k.tekija_id = p_tekija and k.tyyppi not in ('muu', 'matka') and k.id is distinct from p_ohita
     and k.saapui < p_loppu and coalesce(k.lahti, now()) > p_alku
   order by k.saapui limit 1;
   if found then
@@ -397,15 +411,18 @@ begin
 
   v_alkup := case when v.alkup_saapui is null then
     'Tekijä korjannut (alkup. ' ||
-    case when v.tyyppi = 'muu'
+    case when v.tyyppi in ('muu', 'matka')
       then replace(trim_scale(round(extract(epoch from v.lahti - v.saapui) / 3600.0, 2))::text, '.', ',') || ' h'
       else to_char(v.saapui at time zone 'Europe/Helsinki', 'DD.MM. HH24.MI') || '–' ||
            to_char(v.lahti at time zone 'Europe/Helsinki', 'HH24.MI') end || ')'
   end;
 
-  if v.tyyppi = 'muu' then
-    if v_kuvaus is null then
+  if v.tyyppi in ('muu', 'matka') then
+    if v.tyyppi = 'muu' and v_kuvaus is null then
       raise exception 'Kirjoita lyhyesti, mitä teit.';
+    end if;
+    if v.tyyppi = 'matka' and p_tyomaa_id is null then
+      raise exception 'Valitse työmaa, jolle matka-aika kuuluu.';
     end if;
     if p_kesto_min is null or p_kesto_min < 5 or p_kesto_min > 720 then
       raise exception 'Valitse kesto (enintään 12 tuntia).';
@@ -475,6 +492,42 @@ begin
   );
 end $$;
 
+-- Matka-aika (esim. varastolta tai kotoa työmaalle): tekijä merkitsee päivän, keston ja työmaan.
+-- Näkyy raporteissa omana sarakkeenaan, jotta sen voi laskuttaa asiakkaalta.
+create or replace function public.lisaa_matka(
+  p_avain     text,
+  p_paiva     date,
+  p_kesto_min integer,
+  p_tyomaa_id bigint,
+  p_kuvaus    text default null)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_tekija bigint;
+  v_tanaan date := (now() at time zone 'Europe/Helsinki')::date;
+  v_loppu  timestamptz;
+begin
+  select id into v_tekija from public.tekijat where avain = p_avain and aktiivinen;
+  if v_tekija is null then
+    raise exception 'Linkki ei ole voimassa. Pyydä uusi linkki työnjohdolta.';
+  end if;
+  perform 1 from public.tyomaat where id = p_tyomaa_id and aktiivinen;
+  if not found then
+    raise exception 'Valitse työmaa, jolle matka-aika kuuluu.';
+  end if;
+  if p_kesto_min is null or p_kesto_min < 5 or p_kesto_min > 720 then
+    raise exception 'Valitse kesto (enintään 12 tuntia).';
+  end if;
+  if p_paiva is null or p_paiva > v_tanaan or p_paiva < v_tanaan - 31 then
+    raise exception 'Päivän pitää olla viimeisen kuukauden ajalta, ei tulevaisuudessa.';
+  end if;
+  v_loppu := case when p_paiva = v_tanaan then now()
+                  else (p_paiva + time '16:00') at time zone 'Europe/Helsinki' end;
+  insert into public.kirjaukset (tekija_id, tyomaa_id, tyyppi, kuvaus, saapui, lahti)
+  values (v_tekija, p_tyomaa_id, 'matka', nullif(left(trim(coalesce(p_kuvaus, '')), 200), ''),
+          v_loppu - make_interval(mins => p_kesto_min), v_loppu);
+  return public.tekija_tila(p_avain);
+end $$;
+
 -- Peruu käynnissä olevan siirtymän (esim. tekijä ei mennytkään toiselle työmaalle)
 create or replace function public.peru_siirtyma(p_avain text)
 returns json language plpgsql security definer set search_path = public, pg_temp as $$
@@ -534,6 +587,97 @@ begin
   return public.tekija_tila(p_avain);
 end $$;
 
+-- =====================================================================
+--  Salasana: tekijä luo salasanan kutsulinkillä ja kirjautuu sen jälkeen
+--  puhelinnumerolla ja salasanalla. Avain vaihtuu, kun salasana luodaan,
+--  joten pelkkä vanha linkki ei enää riitä.
+-- =====================================================================
+
+create or replace function public.normalisoi_puhelin(p text)
+returns text language sql immutable as $$
+  select case
+    when d is null or d = '' then null
+    when d like '358%' then '0' || substr(d, 4)
+    else d end
+  from (select regexp_replace(coalesce(p, ''), '\D', '', 'g') as d) x
+$$;
+
+create or replace function public.aseta_salasana(p_avain text, p_puhelin text, p_salasana text)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  t        public.tekijat;
+  v_tunnus text := public.normalisoi_puhelin(p_puhelin);
+  v_avain  text;
+begin
+  select * into t from public.tekijat where avain = p_avain and aktiivinen for update;
+  if not found then
+    raise exception 'Linkki ei ole voimassa. Kirjaudu puhelinnumerolla ja salasanalla.';
+  end if;
+  if t.salasana_hash is not null then
+    raise exception 'Salasana on jo luotu. Kirjaudu puhelinnumerolla ja salasanalla.';
+  end if;
+  if v_tunnus is null or length(v_tunnus) < 7 then
+    raise exception 'Tarkista puhelinnumero.';
+  end if;
+  if length(coalesce(p_salasana, '')) < 6 then
+    raise exception 'Salasanassa pitää olla vähintään 6 merkkiä.';
+  end if;
+  perform 1 from public.tekijat where tunnus = v_tunnus and id <> t.id;
+  if found then
+    raise exception 'Tällä puhelinnumerolla on jo tunnus. Ota yhteys työnjohtoon.';
+  end if;
+
+  update public.tekijat set
+    tunnus             = v_tunnus,
+    puhelin            = coalesce(nullif(trim(puhelin), ''), trim(p_puhelin)),
+    salasana_hash      = extensions.crypt(p_salasana, extensions.gen_salt('bf')),
+    kirjautumisvirheet = 0,
+    lukittu_asti       = null,
+    avain              = public.uusi_avain()
+  where id = t.id
+  returning avain into v_avain;
+
+  return json_build_object('avain', v_avain, 'tila', public.tekija_tila(v_avain));
+end $$;
+
+-- Kirjautuminen. Palauttaa {avain} tai {virhe}. Viiden väärän yrityksen jälkeen tunnus lukitaan 15 minuutiksi.
+create or replace function public.kirjaudu(p_puhelin text, p_salasana text)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  t        public.tekijat;
+  v_tunnus text := public.normalisoi_puhelin(p_puhelin);
+  v_virhe  constant text := 'Puhelinnumero tai salasana on väärin.';
+begin
+  select * into t from public.tekijat where tunnus = v_tunnus and aktiivinen for update;
+  if not found then
+    return json_build_object('virhe', v_virhe);
+  end if;
+  if t.salasana_hash is null then
+    return json_build_object('virhe', 'Salasanaa ei ole vielä luotu. Avaa työnjohdolta saamasi linkki.');
+  end if;
+  if t.lukittu_asti is not null and t.lukittu_asti > now() then
+    return json_build_object('virhe', 'Liian monta väärää yritystä. Yritä uudelleen klo ' ||
+      to_char(t.lukittu_asti at time zone 'Europe/Helsinki', 'HH24.MI') || '.');
+  end if;
+  if extensions.crypt(coalesce(p_salasana, ''), t.salasana_hash) = t.salasana_hash then
+    update public.tekijat set kirjautumisvirheet = 0, lukittu_asti = null where id = t.id;
+    return json_build_object('avain', t.avain, 'nimi', t.nimi);
+  end if;
+  update public.tekijat set
+    kirjautumisvirheet = case when kirjautumisvirheet + 1 >= 5 then 0 else kirjautumisvirheet + 1 end,
+    lukittu_asti       = case when kirjautumisvirheet + 1 >= 5 then now() + interval '15 minutes' else lukittu_asti end
+  where id = t.id;
+  return json_build_object('virhe', v_virhe);
+end $$;
+
+-- Admin: nollaa salasanan ja luo uuden kutsulinkin (kirjaa tekijän ulos kaikilta laitteilta). RLS rajaa adminille.
+create or replace function public.nollaa_salasana(p_tekija_id bigint)
+returns text language sql security invoker set search_path = public, pg_temp as $$
+  update public.tekijat set salasana_hash = null, kirjautumisvirheet = 0, lukittu_asti = null,
+                            avain = public.uusi_avain()
+  where id = p_tekija_id returning avain
+$$;
+
 -- Uusi linkki tekijälle (vanha lakkaa toimimasta). Toimii vain adminille (RLS).
 create or replace function public.uusi_linkki(p_tekija_id bigint)
 returns text language sql security invoker set search_path = public, pg_temp as $$
@@ -550,7 +694,11 @@ revoke execute on function public.korjaa_kirjaus(text, bigint, bigint, timestamp
 revoke execute on function public.tekija_raportti(text, date, date) from public;
 revoke execute on function public.peru_siirtyma(text) from public;
 revoke execute on function public.lisaa_muu(text, date, integer, text, bigint) from public;
+revoke execute on function public.lisaa_matka(text, date, integer, bigint, text) from public;
 revoke execute on function public.uusi_linkki(bigint) from public, anon;
+revoke execute on function public.aseta_salasana(text, text, text) from public;
+revoke execute on function public.kirjaudu(text, text) from public;
+revoke execute on function public.nollaa_salasana(bigint) from public, anon;
 grant  execute on function public.tekija_tila(text) to anon, authenticated;
 grant  execute on function public.saavu(text, bigint, double precision, double precision, real) to anon, authenticated;
 grant  execute on function public.lahde(text, text, double precision, double precision, real, timestamptz) to anon, authenticated;
@@ -560,5 +708,9 @@ grant  execute on function public.korjaa_kirjaus(text, bigint, bigint, timestamp
 grant  execute on function public.tekija_raportti(text, date, date) to anon, authenticated;
 grant  execute on function public.peru_siirtyma(text) to anon, authenticated;
 grant  execute on function public.lisaa_muu(text, date, integer, text, bigint) to anon, authenticated;
+grant  execute on function public.lisaa_matka(text, date, integer, bigint, text) to anon, authenticated;
 grant  execute on function public.uusi_linkki(bigint) to authenticated;
+grant  execute on function public.aseta_salasana(text, text, text) to anon, authenticated;
+grant  execute on function public.kirjaudu(text, text) to anon, authenticated;
+grant  execute on function public.nollaa_salasana(bigint) to authenticated;
 grant  execute on function public.on_admin() to anon, authenticated;
