@@ -714,3 +714,202 @@ grant  execute on function public.aseta_salasana(text, text, text) to anon, auth
 grant  execute on function public.kirjaudu(text, text) to anon, authenticated;
 grant  execute on function public.nollaa_salasana(bigint) to authenticated;
 grant  execute on function public.on_admin() to anon, authenticated;
+
+-- =====================================================================
+--  Päivitys 5: kuvadokumentointi
+--  Tekijä lisää kuvia työvaiheittain. Kuvat tallennetaan Supabase Storageen
+--  (yksityinen "kuvat"-säiliö). Tekijä saa latausluvan avaimellaan, ja lupa
+--  koskee vain yhtä satunnaista tiedostonimeä 30 minuutin ajan.
+--  Asiakas näkee vain kuvat, jotka admin on merkinnyt asiakkaalle, työmaan
+--  omalla jakolinkillä (pitkäaikaiset allekirjoitetut osoitteet).
+-- =====================================================================
+
+alter table public.tyomaat add column if not exists jakoavain text;
+create unique index if not exists tyomaat_jakoavain_uniikki on public.tyomaat (jakoavain) where jakoavain is not null;
+
+create table if not exists public.kuvat (
+  id             bigint generated always as identity primary key,
+  tyomaa_id      bigint not null references public.tyomaat(id) on delete restrict,
+  tekija_id      bigint references public.tekijat(id) on delete set null,
+  vaihe          text not null check (length(trim(vaihe)) > 0),
+  kommentti      text,
+  polku          text not null unique,      -- iso kuva säiliössä "kuvat"
+  pikkukuva      text,                      -- pieni versio listoja varten
+  leveys         integer,
+  korkeus        integer,
+  lat            double precision,
+  lon            double precision,
+  otettu         timestamptz not null default now(),
+  asiakkaalle    boolean not null default false,
+  jako_url       text,                      -- asiakkaalle näkyvät osoitteet (vain jaetuille kuville)
+  jako_pikku_url text,
+  luotu          timestamptz not null default now()
+);
+create index if not exists kuvat_tyomaa_idx on public.kuvat (tyomaa_id, otettu);
+
+create table if not exists public.kuva_luvat (
+  perus     text primary key,               -- "<tyomaa_id>/<satunnainen>"; sallii .jpg ja _p.jpg
+  tekija_id bigint not null references public.tekijat(id) on delete cascade,
+  tyomaa_id bigint not null references public.tyomaat(id) on delete cascade,
+  vanhenee  timestamptz not null
+);
+
+alter table public.kuvat      enable row level security;
+alter table public.kuva_luvat enable row level security;
+drop policy if exists admin_kaikki on public.kuvat;
+create policy admin_kaikki on public.kuvat for all to authenticated using (public.on_admin()) with check (public.on_admin());
+revoke all on public.kuvat, public.kuva_luvat from anon;
+revoke all on public.kuva_luvat from authenticated;
+grant select, insert, update, delete on public.kuvat to authenticated;
+
+-- Tarkistus tallennustilan latauspolitiikkaa varten
+create or replace function public.kuva_lupa_voimassa(p_nimi text)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select exists (
+    select 1 from public.kuva_luvat
+    where vanhenee > now() and (p_nimi = perus || '.jpg' or p_nimi = perus || '_p.jpg'))
+$$;
+
+-- Tekijä pyytää latausluvat (1–20 kuvaa kerrallaan)
+create or replace function public.kuva_luvat(p_avain text, p_tyomaa_id bigint, p_maara integer default 1)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_tekija bigint;
+  v_polut  text[] := '{}';
+  v_perus  text;
+begin
+  select id into v_tekija from public.tekijat where avain = p_avain and aktiivinen;
+  if v_tekija is null then
+    raise exception 'Linkki ei ole voimassa. Kirjaudu uudelleen.';
+  end if;
+  perform 1 from public.tyomaat where id = p_tyomaa_id and aktiivinen;
+  if not found then
+    raise exception 'Valitse työmaa.';
+  end if;
+  if p_maara is null or p_maara < 1 or p_maara > 20 then
+    raise exception 'Kerralla voi lisätä 1–20 kuvaa.';
+  end if;
+  delete from public.kuva_luvat where vanhenee < now() - interval '1 day';
+  for i in 1..p_maara loop
+    v_perus := p_tyomaa_id || '/' || replace(gen_random_uuid()::text, '-', '');
+    insert into public.kuva_luvat (perus, tekija_id, tyomaa_id, vanhenee)
+    values (v_perus, v_tekija, p_tyomaa_id, now() + interval '30 minutes');
+    v_polut := v_polut || v_perus;
+  end loop;
+  return to_json(v_polut);
+end $$;
+
+-- Tekijä tallentaa ladatun kuvan tiedot
+create or replace function public.tallenna_kuva(
+  p_avain     text,
+  p_perus     text,
+  p_vaihe     text,
+  p_kommentti text default null,
+  p_lat       double precision default null,
+  p_lon       double precision default null,
+  p_leveys    integer default null,
+  p_korkeus   integer default null,
+  p_otettu    timestamptz default null)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_tekija bigint;
+  l        public.kuva_luvat;
+  v_vaihe  text := nullif(left(trim(coalesce(p_vaihe, '')), 80), '');
+  v_pikku  text;
+  v_id     bigint;
+begin
+  select id into v_tekija from public.tekijat where avain = p_avain and aktiivinen;
+  if v_tekija is null then
+    raise exception 'Linkki ei ole voimassa. Kirjaudu uudelleen.';
+  end if;
+  if v_vaihe is null then
+    raise exception 'Kirjoita työvaihe.';
+  end if;
+  select * into l from public.kuva_luvat where perus = p_perus and tekija_id = v_tekija for update;
+  if not found then
+    raise exception 'Kuvan tallennus vanhentui. Yritä uudelleen.';
+  end if;
+  perform 1 from storage.objects where bucket_id = 'kuvat' and name = p_perus || '.jpg';
+  if not found then
+    raise exception 'Kuvaa ei löytynyt. Yritä uudelleen.';
+  end if;
+  perform 1 from storage.objects where bucket_id = 'kuvat' and name = p_perus || '_p.jpg';
+  if found then v_pikku := p_perus || '_p.jpg'; end if;
+
+  insert into public.kuvat (tyomaa_id, tekija_id, vaihe, kommentti, polku, pikkukuva, leveys, korkeus, lat, lon, otettu)
+  values (l.tyomaa_id, v_tekija, v_vaihe, nullif(left(trim(coalesce(p_kommentti, '')), 500), ''),
+          p_perus || '.jpg', v_pikku, p_leveys, p_korkeus, p_lat, p_lon,
+          case when p_otettu between now() - interval '31 days' and now() + interval '5 minutes'
+               then least(p_otettu, now()) else now() end)
+  returning id into v_id;
+  delete from public.kuva_luvat where perus = p_perus;
+  return json_build_object('id', v_id);
+end $$;
+
+-- Työmaan aiemmat työvaiheet ehdotuksiksi (uusin ensin)
+create or replace function public.tyomaan_vaiheet(p_avain text, p_tyomaa_id bigint)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+begin
+  perform 1 from public.tekijat where avain = p_avain and aktiivinen;
+  if not found then
+    raise exception 'Linkki ei ole voimassa. Kirjaudu uudelleen.';
+  end if;
+  return coalesce((
+    select json_agg(json_build_object('vaihe', vaihe, 'kuvia', kuvia) order by viimeisin desc)
+    from (select vaihe, count(*) as kuvia, max(otettu) as viimeisin
+          from public.kuvat where tyomaa_id = p_tyomaa_id group by vaihe order by max(otettu) desc limit 40) x), '[]'::json);
+end $$;
+
+-- Asiakkaan katselusivu: vain jaetut kuvat
+create or replace function public.asiakas_kuvat(p_jakoavain text)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  w public.tyomaat;
+begin
+  select * into w from public.tyomaat where jakoavain = p_jakoavain and p_jakoavain is not null;
+  if not found then
+    raise exception 'Linkki ei ole voimassa.';
+  end if;
+  return json_build_object(
+    'tyomaa', json_build_object('nimi', w.nimi, 'osoite', w.osoite, 'asiakas', w.asiakas),
+    'kuvat', coalesce((
+      select json_agg(json_build_object('vaihe', k.vaihe, 'kommentti', k.kommentti, 'otettu', k.otettu,
+                                        'url', k.jako_url, 'pikku_url', coalesce(k.jako_pikku_url, k.jako_url),
+                                        'leveys', k.leveys, 'korkeus', k.korkeus) order by k.otettu)
+      from public.kuvat k
+      where k.tyomaa_id = w.id and k.asiakkaalle and k.jako_url is not null), '[]'::json));
+end $$;
+
+-- Admin: luo työmaalle jakolinkin (tai palauttaa olemassa olevan). RLS rajaa adminille.
+create or replace function public.jaa_tyomaa(p_tyomaa_id bigint)
+returns text language sql security invoker set search_path = public, pg_temp as $$
+  update public.tyomaat set jakoavain = coalesce(jakoavain, public.uusi_avain())
+  where id = p_tyomaa_id returning jakoavain
+$$;
+
+revoke execute on function public.kuva_luvat(text, bigint, integer) from public;
+revoke execute on function public.tallenna_kuva(text, text, text, text, double precision, double precision, integer, integer, timestamptz) from public;
+revoke execute on function public.tyomaan_vaiheet(text, bigint) from public;
+revoke execute on function public.asiakas_kuvat(text) from public;
+revoke execute on function public.jaa_tyomaa(bigint) from public, anon;
+grant  execute on function public.kuva_lupa_voimassa(text) to anon, authenticated;
+grant  execute on function public.kuva_luvat(text, bigint, integer) to anon, authenticated;
+grant  execute on function public.tallenna_kuva(text, text, text, text, double precision, double precision, integer, integer, timestamptz) to anon, authenticated;
+grant  execute on function public.tyomaan_vaiheet(text, bigint) to anon, authenticated;
+grant  execute on function public.asiakas_kuvat(text) to anon, authenticated;
+grant  execute on function public.jaa_tyomaa(bigint) to authenticated;
+
+-- Tallennustila: yksityinen säiliö, vain JPEG, enintään 8 Mt/tiedosto
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('kuvat', 'kuvat', false, 8388608, array['image/jpeg'])
+on conflict (id) do update set public = false, file_size_limit = 8388608, allowed_mime_types = array['image/jpeg'];
+
+drop policy if exists kuvat_lataus on storage.objects;
+drop policy if exists kuvat_admin_luku on storage.objects;
+drop policy if exists kuvat_admin_poisto on storage.objects;
+create policy kuvat_lataus on storage.objects for insert to anon, authenticated
+  with check (bucket_id = 'kuvat' and public.kuva_lupa_voimassa(name));
+create policy kuvat_admin_luku on storage.objects for select to authenticated
+  using (bucket_id = 'kuvat' and public.on_admin());
+create policy kuvat_admin_poisto on storage.objects for delete to authenticated
+  using (bucket_id = 'kuvat' and public.on_admin());
