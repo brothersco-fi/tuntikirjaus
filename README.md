@@ -3,7 +3,9 @@
 Työmaan tuntikirjaus puhelimella. Tekijät eivät tarvitse tunnuksia: jokainen saa oman linkin, avaa sen puhelimella ja painaa **Saavuin** / **Lähdin**. Kellonaika ja puhelimen sijainti tallentuvat.
 
 - `index.html` – tekijän kirjaussivu (kirjautuminen puhelinnumerolla ja salasanalla)
-- `hallinta.html` – hallinta: kuka on nyt työmaalla, kirjaukset, korjaukset, yhteenvedot, Excel, työmaat ja tekijät
+- `hallinta.html` – hallinta: kuka on nyt työmaalla, kirjaukset, korjaukset, yhteenvedot, Excel, työmaat, tekijät ja kuvat
+- `asiakas.html` – asiakkaan katselusivu työmaan kuville (vain hallinnassa valitut kuvat)
+- `raportti.js` – kuvaraportin PDF
 - `supabase/schema.sql` – tietokanta (aja kerran Supabasessa)
 - `config.js` – Supabase-osoite ja julkinen avain
 
@@ -34,6 +36,14 @@ Työmaan tuntikirjaus puhelimella. Tekijät eivät tarvitse tunnuksia: jokainen 
 - **Muu työ** (esim. tarvikehaku, varastolla): kuvaus, päivä ja kesto, ja halutessa työmaa.
 - **Korjaa** omia kirjauksia ja **lisää unohtunut kirjaus** viikon ajalta. Korjaukset näkyvät hallinnassa, ja alkuperäiset ajat jäävät talteen.
 - **Oma yhteenveto laskutusta varten**: tunnit valitulta ajalta ja Excel-tiedosto.
+- **Kuvat**: työmaa, työvaihe omin sanoin (esim. "Purku", "Pohjalaasti"), halutessa kommentti ja kuvat. Aiemmat vaiheet tulevat ehdotuksiksi, jotta samat vaiheet pysyvät yhdessä. Kuvat pienennetään puhelimessa ennen lähetystä.
+
+## Kuvadokumentointi
+
+- Hallinnan **Kuvat**-välilehdellä näet työmaan kuvat työvaiheittain. Voit nimetä vaiheen uudelleen (esim. yhdistää kaksi eri tavalla kirjoitettua), poistaa kuvan ja ladata PDF-raportin.
+- Merkitse **Asiakkaalle** ne kuvat, jotka asiakas saa nähdä. Paina **Luo asiakkaan linkki** ja lähetä linkki asiakkaalle. Asiakas näkee vain merkityt kuvat ja voi ladata niistä PDF:n.
+- **Poista linkki** lopettaa asiakkaan pääsyn heti. Uusi linkki on eri osoite.
+- Kuvat ovat yksityisessä tallennustilassa. Asiakkaalle merkityn kuvan osoite on voimassa viisi vuotta; jos merkintä poistetaan, kuva katoaa asiakkaan sivulta.
 
 Kutsulinkki on muotoa `.../tuntikirjaus/?nimi=etunimi-sukunimi&k=...`. Nimi on vain tunnistamisen helpottamiseksi.
 

@@ -1,51 +1,58 @@
-/* Layout: puhelimelle ensin. Kirjaussivu = yksi sarake isoin painikkein (hanskat, auringonvalo);
-   hallinta = yläpalkki + välilehdet + taulukot. Betoninharmaa pohja, huomioväri oranssi, "työmaalla" vihreä. */
+/* Brothers & Co. – yhteinen tyyli. Skandinaavinen ja hillitty: lämmin luonnonvalkoinen pohja,
+   musta teksti, ohuet viivat, serif-otsikot ja yksi savenruskea korostusväri.
+   Kirjaussivulla painikkeet pysyvät isoina (hanskat, auringonvalo). */
 :root {
-  --bg: #E7EAE8;
-  --surface: #FFFFFF;
-  --surface-2: #F3F5F4;
-  --ink: #18201D;
-  --muted: #56615C;
-  --line: #CDD4D0;
-  --accent: #D9530F;
-  --accent-ink: #FFFFFF;
-  --on: #1B7347;
-  --on-soft: #DCEFE4;
-  --warn: #9A5B00;
-  --warn-soft: #FBEBD0;
-  --bad: #B42318;
-  --bad-soft: #FBE1DE;
-  --move: #2D5B8A;
-  --move-soft: #DCE6F1;
-  --accent-soft: #FBE4D6;
-  --focus: #1F5FD1;
-  --font-display: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
-  --font-body: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --bg: #F3F0EA;
+  --surface: #FBFAF6;
+  --surface-2: #ECE8E0;
+  --ink: #1C1B19;
+  --ink-2: #3A3833;
+  --muted: #6B665C;
+  --line: #DED8CD;
+  --line-strong: #BFB7A9;
+  --accent: #8B5A3C;
+  --accent-ink: #FBFAF6;
+  --accent-soft: #EFE3D7;
+  --on: #4B684D;
+  --on-soft: #E1E8DC;
+  --warn: #8F621A;
+  --warn-soft: #F2E7CF;
+  --bad: #A13A29;
+  --bad-soft: #F5E0DA;
+  --move: #485D70;
+  --move-soft: #DFE5EA;
+  --focus: #1C1B19;
+  --font-display: 'Instrument Serif', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  --font-body: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --r-s: 6px;
   --r: 10px;
-  --shadow: 0 1px 2px rgb(24 32 29 / .06), 0 4px 14px rgb(24 32 29 / .06);
+  --shadow: none;
+  --nosto: 0 1px 0 rgb(28 27 25 / .04), 0 12px 32px -18px rgb(28 27 25 / .25);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121715;
-    --surface: #1B2320;
-    --surface-2: #222B28;
-    --ink: #E6EBE8;
-    --muted: #98A49E;
-    --line: #34413C;
-    --accent: #FF7536;
-    --accent-ink: #1A0B03;
-    --on: #3DB476;
-    --on-soft: #17352A;
-    --warn: #E9A73F;
-    --warn-soft: #3A2C14;
-    --bad: #F3735F;
-    --bad-soft: #3D1D19;
-    --move: #82AEDD;
-    --move-soft: #1B2A39;
-    --accent-soft: #3B2316;
-    --focus: #7EA8FF;
-    --shadow: 0 1px 2px rgb(0 0 0 / .3);
+    --bg: #141412;
+    --surface: #1B1A17;
+    --surface-2: #24231F;
+    --ink: #EDE9E1;
+    --ink-2: #D2CDC3;
+    --muted: #A39E93;
+    --line: #312F2A;
+    --line-strong: #4A4740;
+    --accent: #C99070;
+    --accent-ink: #141412;
+    --accent-soft: #352619;
+    --on: #9BB898;
+    --on-soft: #1F2A20;
+    --warn: #D8AB5E;
+    --warn-soft: #33291A;
+    --bad: #E58A76;
+    --bad-soft: #38201B;
+    --move: #9FB4C8;
+    --move-soft: #1D2630;
+    --focus: #EDE9E1;
+    --nosto: 0 12px 32px -18px rgb(0 0 0 / .6);
     color-scheme: dark;
   }
 }
@@ -56,18 +63,20 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font: 400 17px/1.45 var(--font-body);
+  font: 400 17px/1.5 var(--font-body);
   font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
 }
-h1, h2, h3 { font-family: var(--font-display); font-weight: 600; line-height: 1.1; margin: 0; text-wrap: balance; }
-a { color: inherit; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; line-height: 1.05; letter-spacing: -.005em; margin: 0; text-wrap: balance; }
+a { color: inherit; text-underline-offset: .2em; text-decoration-thickness: 1px; }
 button, input, select, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 [hidden] { display: none !important; }
+::selection { background: var(--accent-soft); }
 
 .eyebrow {
-  font: 600 .78rem/1 var(--font-body);
-  letter-spacing: .12em;
+  font: 500 .72rem/1.2 var(--font-body);
+  letter-spacing: .18em;
   text-transform: uppercase;
   color: var(--muted);
 }
@@ -77,59 +86,65 @@ button, input, select, textarea { font: inherit; color: inherit; }
 /* ---------- Painikkeet ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5em;
-  min-height: 44px; padding: 0 1.1em;
-  border: 1px solid var(--line); border-radius: var(--r);
-  background: var(--surface); color: var(--ink);
-  font-weight: 600; cursor: pointer; text-decoration: none;
-  transition: transform .06s ease, background .15s ease;
+  min-height: 44px; padding: 0 1.15em;
+  border: 1px solid var(--line-strong); border-radius: var(--r-s);
+  background: transparent; color: var(--ink);
+  font-weight: 500; letter-spacing: .01em; cursor: pointer; text-decoration: none;
+  transition: background .15s ease, border-color .15s ease, transform .06s ease;
 }
-.btn:hover { background: var(--surface-2); }
-.btn:active { transform: scale(.98); }
-.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
-.btn-ensi { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.btn-ensi:hover { background: var(--accent); filter: brightness(1.06); }
-.btn-vaara { color: var(--bad); border-color: var(--bad); background: transparent; }
-.btn-vaara.vahvista { background: var(--bad); color: #fff; }
-.btn-pieni { min-height: 36px; padding: 0 .8em; font-size: .9rem; }
-.btn-linkki { border: 0; background: none; padding: 0; min-height: 0; color: var(--muted); text-decoration: underline; font-weight: 500; }
+.btn:hover { background: var(--surface); border-color: var(--ink); }
+.btn:active { transform: scale(.985); }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn-ensi { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.btn-ensi:hover { background: var(--ink-2); border-color: var(--ink-2); }
+.btn-vaara { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 45%, transparent); background: transparent; }
+.btn-vaara:hover { border-color: var(--bad); background: var(--bad-soft); }
+.btn-vaara.vahvista { background: var(--bad); border-color: var(--bad); color: var(--surface); }
+.btn-pieni { min-height: 36px; padding: 0 .85em; font-size: .88rem; }
+.btn-linkki { border: 0; background: none; padding: 0; min-height: 0; color: var(--muted); text-decoration: underline; text-underline-offset: .25em; text-decoration-thickness: 1px; font-weight: 400; }
 .btn-linkki:hover { background: none; color: var(--ink); }
 
 .iso-nappi {
-  width: 100%; min-height: 76px;
-  border: 0; border-radius: 14px;
-  font: 700 1.6rem/1 var(--font-display); letter-spacing: .02em; text-transform: uppercase;
-  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: .6rem;
-  box-shadow: var(--shadow);
+  width: 100%; min-height: 72px;
+  border: 0; border-radius: var(--r-s);
+  font: 500 1.02rem/1 var(--font-body); letter-spacing: .16em; text-transform: uppercase;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: .75rem;
   transition: transform .06s ease, filter .15s ease;
 }
-.iso-nappi:active { transform: scale(.985); }
-.iso-nappi:disabled { opacity: .45; cursor: not-allowed; }
-.iso-nappi.saavu { background: var(--on); color: #fff; }
+.iso-nappi:hover { filter: brightness(1.12); }
+.iso-nappi:active { transform: scale(.99); }
+.iso-nappi:disabled { opacity: .35; cursor: not-allowed; filter: none; }
+.iso-nappi.saavu { background: var(--ink); color: var(--bg); }
 .iso-nappi.lahde { background: var(--accent); color: var(--accent-ink); }
-.iso-nappi svg { width: 28px; height: 28px; flex: none; }
+.iso-nappi svg { width: 22px; height: 22px; flex: none; }
 
 /* ---------- Lomakkeet ---------- */
-label { display: grid; gap: .3rem; font-weight: 600; font-size: .92rem; }
+label { display: grid; gap: .35rem; font-weight: 500; font-size: .9rem; color: var(--ink-2); }
 label .vihje { font-weight: 400; color: var(--muted); }
 input[type=text], input[type=email], input[type=password], input[type=number], input[type=tel],
-input[type=date], input[type=datetime-local], select, textarea {
-  width: 100%; min-height: 44px; padding: .55rem .7rem;
-  border: 1px solid var(--line); border-radius: 8px;
-  background: var(--surface); font-weight: 400;
+input[type=date], input[type=datetime-local], input[type=time], select, textarea {
+  width: 100%; min-height: 46px; padding: .6rem .75rem;
+  border: 1px solid var(--line-strong); border-radius: var(--r-s);
+  background: var(--surface); font-weight: 400; color: var(--ink);
+  transition: border-color .15s ease, box-shadow .15s ease;
 }
-textarea { min-height: 84px; resize: vertical; }
-input:focus, select:focus, textarea:focus { border-color: var(--focus); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus) 25%, transparent); }
-.valinta { display: flex; align-items: center; gap: .55rem; font-weight: 500; }
-.valinta input { width: 20px; height: 20px; accent-color: var(--on); }
+select { appearance: none; -webkit-appearance: none; padding-right: 2.2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%236B665C' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right .8rem center; }
+textarea { min-height: 88px; resize: vertical; }
+input::placeholder, textarea::placeholder { color: color-mix(in srgb, var(--muted) 75%, transparent); }
+input:focus, select:focus, textarea:focus { border-color: var(--ink); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--ink) 10%, transparent); }
+.valinta { display: flex; align-items: center; gap: .6rem; font-weight: 400; color: var(--ink); }
+.valinta input { width: 18px; height: 18px; accent-color: var(--ink); }
 
 /* ---------- Pillerit ---------- */
 .pill {
-  display: inline-flex; align-items: center; gap: .35em;
-  padding: .2em .65em; border-radius: 999px;
-  font: 600 .8rem/1.4 var(--font-body); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: .45em;
+  padding: .28em .7em; border-radius: 999px;
+  font: 500 .7rem/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
   background: var(--surface-2); color: var(--muted);
 }
-.pill::before { content: ''; width: .5em; height: .5em; border-radius: 50%; background: currentColor; }
+.pill::before { content: ''; width: .45em; height: .45em; border-radius: 50%; background: currentColor; }
 .pill.on { background: var(--on-soft); color: var(--on); }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .pill.bad { background: var(--bad-soft); color: var(--bad); }
@@ -140,16 +155,16 @@ input:focus, select:focus, textarea:focus { border-color: var(--focus); outline:
 /* ---------- Ilmoitus (toast) ---------- */
 #toast {
   position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px));
-  transform: translate(-50%, 140%);
+  transform: translate(-50%, 160%);
   max-width: min(92vw, 460px); width: max-content;
-  padding: .8rem 1.1rem; border-radius: 12px;
+  padding: .85rem 1.15rem; border-radius: var(--r-s);
   background: var(--ink); color: var(--bg);
-  font-weight: 600; box-shadow: 0 8px 30px rgb(0 0 0 / .25);
-  transition: transform .25s ease; z-index: 50;
+  font-weight: 500; box-shadow: 0 10px 30px rgb(0 0 0 / .22);
+  transition: transform .28s cubic-bezier(.2, .8, .2, 1); z-index: 50;
 }
 #toast.nakyy { transform: translate(-50%, 0); }
-#toast[data-tyyppi=virhe] { background: var(--bad); color: #fff; }
-#toast[data-tyyppi=varoitus] { background: var(--warn); color: var(--bg); }
+#toast[data-tyyppi=virhe] { background: var(--bad); color: var(--surface); }
+#toast[data-tyyppi=varoitus] { background: var(--warn); color: var(--surface); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }

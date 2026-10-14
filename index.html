@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Tunnit · Brothers &amp; Co.</title>
 <meta name="robots" content="noindex, nofollow">
-<meta name="theme-color" content="#1B7347">
+<meta name="theme-color" content="#F3F0EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141412" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Tunnit">
@@ -14,122 +15,155 @@
 <link rel="icon" type="image/png" href="ikoni-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="tyyli.css?v=3">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="tyyli.css?v=4">
 <style>
   .kirjaus {
     max-width: 520px; margin: 0 auto;
-    padding-inline: 16px;
-    padding-block: calc(18px + env(safe-area-inset-top, 0px)) calc(40px + env(safe-area-inset-bottom, 0px));
-    display: grid; gap: 22px;
+    padding-inline: 18px;
+    padding-block: calc(22px + env(safe-area-inset-top, 0px)) calc(44px + env(safe-area-inset-bottom, 0px));
+    display: grid; gap: 26px;
   }
-  .yla { display: grid; gap: 6px; }
-  .yla h1 { font-size: 2.6rem; }
-  .paivays { color: var(--muted); font-weight: 500; }
-  .paivays #kello { color: var(--ink); font-weight: 700; }
+  .yla { display: grid; gap: 10px; padding-bottom: 6px; }
+  .yla h1 { font-size: 3.1rem; }
+  .paivays { color: var(--muted); font-size: .95rem; }
+  .paivays #kello { color: var(--ink); font-weight: 500; }
 
-  .kortti { background: var(--surface); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
-  .kortti.virhe { border-left: 5px solid var(--bad); }
-  .kortti.virhe h2 { font-size: 1.5rem; margin-bottom: 6px; }
-  .kortti.virhe p { margin: 0 0 14px; }
+  .kortti { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 20px; }
+  .kortti.virhe { border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+  .kortti.virhe h2 { font-size: 1.8rem; margin-bottom: 8px; }
+  .kortti.virhe p { margin: 0 0 16px; }
 
-  section { display: grid; gap: 14px; }
+  section { display: grid; gap: 16px; }
   .otsikkorivi { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .otsikkorivi h2 { font-size: 1.55rem; }
+  .otsikkorivi h2 { font-size: 1.95rem; }
 
-  .tyomaat { display: grid; gap: 10px; }
+  /* Työmaan valinta */
+  .tyomaat { display: grid; gap: 8px; }
   .tyomaa {
-    display: grid; grid-template-columns: 26px 1fr auto; align-items: center; gap: 12px;
-    width: 100%; text-align: left; padding: 14px 14px;
-    background: var(--surface); border: 2px solid var(--line); border-radius: 12px;
-    cursor: pointer; min-height: 64px;
+    display: grid; grid-template-columns: 20px 1fr auto; align-items: center; gap: 14px;
+    width: 100%; text-align: left; padding: 15px 16px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+    cursor: pointer; min-height: 66px; transition: border-color .15s ease, box-shadow .15s ease;
   }
-  .tyomaa .ympyra { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--muted); display: grid; place-items: center; }
-  .tyomaa[aria-checked=true] { border-color: var(--on); background: var(--on-soft); }
-  .tyomaa[aria-checked=true] .ympyra { border-color: var(--on); }
-  .tyomaa[aria-checked=true] .ympyra::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--on); }
-  .tyomaa .nimi { font-weight: 700; font-size: 1.05rem; line-height: 1.25; }
-  .tyomaa .osoite { color: var(--muted); font-size: .9rem; }
+  .tyomaa:hover { border-color: var(--line-strong); }
+  .tyomaa .ympyra { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; }
+  .tyomaa[aria-checked=true] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .tyomaa[aria-checked=true] .ympyra { border-color: var(--ink); }
+  .tyomaa[aria-checked=true] .ympyra::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--ink); }
+  .tyomaa .nimi { font-weight: 600; font-size: 1.02rem; line-height: 1.25; }
+  .tyomaa .osoite { color: var(--muted); font-size: .88rem; }
   .tyomaa .tieto { min-width: 0; }
-  .tyomaa .matka { font-size: .85rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
-  .tyomaa .matka.lahella { color: var(--on); }
+  .tyomaa .matka { font-size: .82rem; color: var(--muted); white-space: nowrap; }
+  .tyomaa .matka.lahella { color: var(--on); font-weight: 500; }
 
+  /* Käynnissä oleva kirjaus */
   .status-kortti {
-    background: var(--surface); border-radius: 16px; padding: 20px;
-    border-top: 6px solid var(--on); box-shadow: var(--shadow);
-    display: grid; gap: 10px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px 20px 20px;
+    display: grid; gap: 12px;
   }
-  .status-kortti[data-tyyppi=siirtyma] { border-top-color: var(--move); }
-  .status-kortti[data-tyyppi=muu] { border-top-color: var(--accent); }
-  .status-kortti h2 { font-size: 2rem; overflow-wrap: anywhere; }
-  .status-kortti .ali { color: var(--muted); font-weight: 500; }
-  .toissijaiset { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .toissijaiset .btn { min-height: 56px; white-space: normal; text-align: center; line-height: 1.2; }
+  .status-kortti h2 { font-size: 2.35rem; overflow-wrap: anywhere; }
+  .status-kortti .ali { color: var(--muted); }
+  .status-rivi { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .status-rivi .eyebrow { margin-bottom: 6px; }
+  .iso-luku { font: 300 2.1rem/1 var(--font-body); letter-spacing: -.01em; white-space: nowrap; }
+  .toissijaiset { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .toissijaiset .btn { min-height: 54px; white-space: normal; text-align: center; line-height: 1.2; }
   .toissijaiset .koko { grid-column: 1 / -1; }
   .linkkirivi { text-align: center; }
-  .muu-kortti { background: var(--surface); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); border-top: 6px solid var(--accent); display: grid; gap: 14px; }
-  .muu-kortti h2 { font-size: 1.55rem; }
-  .muu-napit { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; }
+
+  /* Lomakekortit */
+  .muu-kortti, .korjaus-kortti, .kirjaudu-kortti {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 22px 20px;
+    display: grid; gap: 16px;
+  }
+  .muu-kortti h2, .korjaus-kortti h2 { font-size: 2rem; }
+  .kirjaudu-kortti h2 { font-size: 2.2rem; }
+  .kirjaudu-kortti p { margin: 0; }
+  .kirjaudu-kortti .ilmoitus { background: var(--warn-soft); border-radius: var(--r-s); padding: 11px 13px; }
+  .muu-napit { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 2px; }
   .muu-napit .btn { min-height: 52px; }
   .kaksi-kenttaa { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .historia .h-tyyppi { font-weight: 600; }
-  .historia .h-korjaa { grid-column: 1 / -1; justify-self: start; margin-top: 4px; }
-  .historia .h-merkki { color: var(--warn); font-size: .82rem; font-weight: 600; }
-  .aiempi-paneeli { background: var(--on-soft); border: 2px solid var(--on); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
+
+  .aiempi-paneeli { background: var(--surface); border: 1px solid var(--ink); border-radius: var(--r); padding: 14px 16px; display: grid; gap: 8px; }
   .aiempi-paneeli .rivi { display: flex; gap: 10px; align-items: center; }
-  .aiempi-paneeli input { max-width: 160px; font-size: 1.2rem; font-weight: 700; }
-  .muut { display: grid; gap: 8px; margin-top: 6px; }
-  .muut-napit { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .aiempi-paneeli input { max-width: 160px; font-size: 1.2rem; font-weight: 500; }
+
+  /* Muut toiminnot: yksi rauhallinen lista */
+  .muut { display: grid; gap: 10px; margin-top: 10px; }
+  .muut-napit { display: grid; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
   .toiminto {
-    display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; text-align: left;
-    background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; cursor: pointer;
-    min-height: 60px; box-shadow: var(--shadow);
+    display: grid; grid-template-columns: 22px 1fr auto; gap: 14px; align-items: center; text-align: left;
+    background: transparent; border: 0; border-top: 1px solid var(--line); padding: 14px 16px; cursor: pointer;
+    min-height: 64px; transition: background .15s ease;
   }
+  .toiminto:first-child { border-top: 0; }
+  .toiminto::after { content: '→'; color: var(--muted); font-size: 1rem; transition: transform .15s ease; }
   .toiminto:hover { background: var(--surface-2); }
-  .toiminto svg { width: 26px; height: 26px; color: var(--accent); }
-  .toiminto b { display: block; font-size: 1rem; line-height: 1.2; }
-  .toiminto small { display: block; color: var(--muted); font-size: .85rem; line-height: 1.3; margin-top: 2px; }
-  .kirjaudu-kortti { background: var(--surface); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); display: grid; gap: 14px; border-top: 6px solid var(--on); }
-  .kirjaudu-kortti h2 { font-size: 1.8rem; }
-  .kirjaudu-kortti p { margin: 0; }
-  .kirjaudu-kortti .ilmoitus { background: var(--warn-soft); border-radius: 10px; padding: 10px 12px; }
-  .ulos { text-align: center; }
-  .korjaus-kortti { background: var(--surface); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); border-top: 6px solid var(--move); display: grid; gap: 14px; }
-  .korjaus-kortti h2 { font-size: 1.55rem; }
-  .yhteenveto { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 4px 16px; }
-  .yhteenveto > summary { cursor: pointer; font: 600 1.25rem/1.2 var(--font-display); padding: 14px 0; }
-  .yhteenveto .sisus { display: grid; gap: 12px; padding-bottom: 16px; }
-  .yv-taulu { width: 100%; border-collapse: collapse; font-size: .92rem; }
-  .yv-taulu th, .yv-taulu td { padding: 7px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
-  .yv-taulu th { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  .yv-taulu .n { text-align: right; white-space: nowrap; }
-  .yv-taulu tfoot td { font-weight: 700; border-bottom: 0; }
-  .yv-summa { font: 700 1.5rem/1.2 var(--font-display); }
-  .status-rivi { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
-  .iso-luku { font: 700 1.9rem/1.1 var(--font-display); white-space: nowrap; }
+  .toiminto:hover::after { transform: translateX(3px); color: var(--ink); }
+  .toiminto svg { width: 22px; height: 22px; color: var(--accent); stroke-width: 1.6; }
+  .toiminto b { display: block; font-weight: 600; font-size: 1rem; line-height: 1.25; }
+  .toiminto small { display: block; color: var(--muted); font-size: .86rem; line-height: 1.35; margin-top: 2px; }
+  .iso-nappi svg { stroke-width: 1.8; }
 
-  .unohtui { background: var(--warn-soft); color: var(--ink); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
-  .unohtui strong { color: var(--warn); font-size: 1.05rem; }
-  .unohtui p { margin: 0; }
+  /* Kuvat */
+  .kuvanappi {
+    display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 68px;
+    border: 1px dashed var(--line-strong); border-radius: var(--r); background: transparent; cursor: pointer;
+    font: 500 1rem/1.2 var(--font-body); color: var(--ink); transition: border-color .15s ease, background .15s ease;
+  }
+  .kuvanappi:hover { border-color: var(--ink); background: var(--surface-2); }
+  .kuvanappi svg { width: 24px; height: 24px; color: var(--accent); stroke-width: 1.6; }
+  .esikatselu { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; }
+  .esikatselu figure { margin: 0; position: relative; aspect-ratio: 1; border-radius: 4px; overflow: hidden; background: var(--surface-2); }
+  .esikatselu img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .esikatselu button { position: absolute; top: 5px; right: 5px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgb(20 20 18 / .7); color: #fff; font-size: 15px; line-height: 1; cursor: pointer; }
+  .esikatselu figure.valmis::after { content: '✓'; position: absolute; inset: auto 6px 6px auto; width: 22px; height: 22px; border-radius: 50%; background: var(--on); color: #fff; display: grid; place-items: center; font-size: .8rem; font-weight: 600; }
+  .ehdotukset { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
+  .ehdotukset button { border: 1px solid var(--line-strong); background: transparent; border-radius: 999px; padding: 6px 13px; font-size: .86rem; cursor: pointer; }
+  .ehdotukset button[aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 
-  .viikko-summa { font: 700 1.55rem/1 var(--font-display); }
-  .viikko-summa span { color: var(--on); }
-  .historia { list-style: none; margin: 0; padding: 0; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); }
-  .historia li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  /* Oma historia ja yhteenveto */
+  .viikko-summa { color: var(--muted); font-size: .9rem; }
+  .viikko-summa span { font: 400 1.9rem/1 var(--font-display); color: var(--ink); }
+  .historia { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+  .historia li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 14px 18px; border-top: 1px solid var(--line); }
   .historia li:first-child { border-top: 0; }
-  .historia .h-paiva { font-weight: 700; }
-  .historia .h-tunnit { font-weight: 700; text-align: right; }
-  .historia .h-tyomaa, .historia .h-aika { color: var(--muted); font-size: .9rem; min-width: 0; }
+  .historia .h-paiva { font-weight: 600; }
+  .historia .h-tunnit { font-weight: 500; text-align: right; }
+  .historia .h-tyomaa, .historia .h-aika { color: var(--muted); font-size: .88rem; min-width: 0; }
   .historia .h-aika { text-align: right; }
+  .historia .h-tyyppi { font-weight: 500; }
+  .historia .h-korjaa { grid-column: 1 / -1; justify-self: start; margin-top: 6px; }
+  .historia .h-merkki { color: var(--warn); font-size: .8rem; font-weight: 500; }
   .historia .tyhja { display: block; color: var(--muted); }
 
-  .sijaintiohje { background: var(--warn-soft); border-radius: 12px; padding: 14px 16px; display: grid; gap: 8px; }
-  .sijaintiohje strong { color: var(--warn); font-size: 1.05rem; }
+  .yhteenveto { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 4px 18px; }
+  .yhteenveto > summary { cursor: pointer; font: 400 1.5rem/1.2 var(--font-display); padding: 16px 0; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .yhteenveto > summary::-webkit-details-marker, .ohje summary::-webkit-details-marker { display: none; }
+  .yhteenveto > summary::after { content: '+'; font: 300 1.5rem/1 var(--font-body); color: var(--muted); }
+  .yhteenveto[open] > summary::after { content: '−'; }
+  .yhteenveto .sisus { display: grid; gap: 14px; padding-bottom: 18px; }
+  .yv-taulu { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .yv-taulu th, .yv-taulu td { padding: 8px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  .yv-taulu th { font-size: .68rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .yv-taulu .n { text-align: right; white-space: nowrap; }
+  .yv-taulu tfoot td { font-weight: 600; border-bottom: 0; }
+  .yv-summa { font: 400 1.9rem/1.15 var(--font-display); }
+
+  .unohtui { background: var(--warn-soft); color: var(--ink); border-radius: var(--r); padding: 16px; display: grid; gap: 8px; }
+  .unohtui strong { color: var(--warn); font-weight: 600; font-size: 1.02rem; }
+  .unohtui p { margin: 0; }
+
+  .sijaintiohje { background: var(--warn-soft); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 8px; }
+  .sijaintiohje strong { color: var(--warn); font-weight: 600; font-size: 1.02rem; }
   .sijaintiohje p, .sijaintiohje ol { margin: 0; }
   .sijaintiohje ol { padding-left: 1.2em; display: grid; gap: 4px; }
-  .ohje { color: var(--muted); font-size: .92rem; }
-  .ohje summary { cursor: pointer; font-weight: 600; }
+  .ohje { color: var(--muted); font-size: .9rem; }
+  .ohje summary { cursor: pointer; list-style: none; text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: .25em; }
+  .ohje[open] summary { color: var(--ink); }
   .ohje p { margin: .5rem 0 0; }
+  .ulos { text-align: center; }
 </style>
 </head>
 <body>
@@ -151,7 +185,7 @@
     <form id="kirjauduLomake" style="display:grid;gap:14px">
       <label>Puhelinnumero <input type="tel" id="kPuhelin" autocomplete="tel" inputmode="tel" required placeholder="040 123 4567"></label>
       <label>Salasana <input type="password" id="kSalasana" autocomplete="current-password" required></label>
-      <button class="iso-nappi saavu" type="submit" id="kirjauduNappi" style="min-height:60px;font-size:1.4rem"><span>Kirjaudu</span></button>
+      <button class="iso-nappi saavu" type="submit" id="kirjauduNappi" style="min-height:60px"><span>Kirjaudu</span></button>
     </form>
     <p class="pieni muted">Unohditko salasanan? Pyydä työnjohtoa nollaamaan se. Saat uuden linkin, jolla luot uuden salasanan.</p>
   </section>
@@ -165,7 +199,7 @@
       <label><span>Salasana <span class="vihje">vähintään 6 merkkiä</span></span><input type="password" id="lSalasana" autocomplete="new-password" minlength="6" required></label>
       <label>Salasana uudelleen <input type="password" id="lSalasana2" autocomplete="new-password" minlength="6" required></label>
       <label class="valinta"><input type="checkbox" id="lNayta"> Näytä salasana</label>
-      <button class="iso-nappi saavu" type="submit" id="luoNappi" style="min-height:60px;font-size:1.4rem"><span>Tallenna ja jatka</span></button>
+      <button class="iso-nappi saavu" type="submit" id="luoNappi" style="min-height:60px"><span>Tallenna ja jatka</span></button>
     </form>
   </section>
 
@@ -206,6 +240,7 @@
     </button>
 
     <div class="toissijaiset" id="toissijaiset">
+      <button class="btn koko" type="button" id="kuvaNappiTyossa">Lisää kuvia työvaiheesta</button>
       <button class="btn koko" type="button" id="siirryNappi">Siirryn toiselle työmaalle</button>
       <button class="btn" type="button" id="matkaNappiTyossa">Lisää matka-aika</button>
       <button class="btn" type="button" id="muuNappiTyossa">Lisää muu työ</button>
@@ -234,6 +269,29 @@
     </div>
   </section>
 
+  <!-- Kuvat työvaiheista -->
+  <section id="kuvaLomake" class="muu-kortti kuva-kortti" hidden>
+    <h2>Lisää kuvia</h2>
+    <label>Työmaa <select id="kuvaTyomaa"></select></label>
+    <label>Työvaihe
+      <input type="text" id="kuvaVaihe" list="vaiheLista" maxlength="80" placeholder="Esim. pohjalaasti, 1. kerros, valmis" autocomplete="off">
+      <datalist id="vaiheLista"></datalist>
+    </label>
+    <div class="ehdotukset" id="vaiheEhdotukset" aria-label="Työmaan aiemmat työvaiheet"></div>
+    <label><span>Kommentti <span class="vihje">(vapaaehtoinen)</span></span><input type="text" id="kuvaKommentti" maxlength="500" placeholder="Esim. kylpyhuoneen lattia"></label>
+    <input type="file" id="kuvaTiedostot" accept="image/*" multiple hidden>
+    <button class="kuvanappi" type="button" id="kuvaValitse">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      <span id="kuvaValitseTeksti">Ota kuva tai valitse kuvat</span>
+    </button>
+    <div class="esikatselu" id="kuvaEsikatselu"></div>
+    <p class="pieni muted" id="kuvaTila" style="margin:0">Kuvat pienennetään ennen lähetystä, joten ne eivät kuluta paljon dataa.</p>
+    <div class="muu-napit">
+      <button class="btn" type="button" id="kuvaPeru">Peruuta</button>
+      <button class="btn btn-ensi" type="button" id="kuvaTallenna" disabled>Tallenna kuvat</button>
+    </div>
+  </section>
+
   <!-- Työmaan valinta -->
   <section id="valinta" hidden>
     <div class="otsikkorivi">
@@ -259,6 +317,10 @@
         <button class="toiminto" type="button" id="aiempiNappi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           <span><b>Saavuin aiemmin</b><small>Unohditko painaa? Valitse kellonaika.</small></span>
+        </button>
+        <button class="toiminto" type="button" id="kuvaNappi">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          <span><b>Kuvat</b><small>Kuvaa työvaiheet työmaalla.</small></span>
         </button>
         <button class="toiminto" type="button" id="matkaNappi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2-5a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5v4h-2"/><path d="M5 17H3v-4h18"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>
@@ -336,12 +398,19 @@
 <script src="config.js?v=3"></script>
 <script src="apu.js?v=3"></script>
 <script>
+  // Tervehdys vuorokaudenajan mukaan (Suomen aika)
+  function tervehdys(nimi) {
+    const h = Number(new Intl.DateTimeFormat('fi-FI', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Europe/Helsinki' }).format(new Date()));
+    const alku = h >= 5 && h < 10 ? 'Huomenta' : h >= 10 && h < 17 ? 'Päivää' : h >= 17 && h < 23 ? 'Iltaa' : 'Hei';
+    return `${alku}, ${nimi}`;
+  }
 (function () {
   const $ = id => document.getElementById(id);
   const AVAIN_KEY = 'tk_avain', TYOMAA_KEY = 'tk_viimeisin_tyomaa';
 
   let db = null, avain = null, tila = null, sijainti = null, sijaintiVirhe = null, valittu = null;
-  let naytaMuu = false, muuTyyppi = 'muu', naytaValinta = false, korjattava = null;
+  let naytaMuu = false, muuTyyppi = 'muu', naytaValinta = false, korjattava = null, naytaKuvat = false;
+  let kuvaTiedostot = [];   // { file, url }
   const KESTO = t => t === 'muu' || t === 'matka';   // kestona merkittävät kirjaukset
   const VIIKKO_MS = 7 * 86400000;
   const onIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -364,7 +433,7 @@
     siivoaOsoite();
   }
   function poistuTila() {
-    tila = null; korjattava = null; naytaMuu = false; naytaValinta = false;
+    tila = null; korjattava = null; naytaMuu = false; naytaValinta = false; naytaKuvat = false;
     $('historia').hidden = true; $('omaYhteenveto').hidden = true; $('sijaintiOhje').hidden = true; $('ulosRivi').hidden = true;
     $('tervehdys').textContent = 'Tuntikirjaus';
   }
@@ -377,13 +446,13 @@
   function naytaLuo() {
     const nimi = tila.nimi.split(' ')[0], puhelin = tila.puhelin;
     poistuTila();
-    $('tervehdys').textContent = 'Hei, ' + nimi + '!';
+    $('tervehdys').textContent = tervehdys(nimi);
     naytaVain('luoOsio');
     if (!$('lPuhelin').value && puhelin) $('lPuhelin').value = puhelin;
   }
   if (TK.cfg.yritys) $('yritys').textContent = TK.cfg.yritys + ' · Tuntikirjaus';
 
-  const OSIOT = ['lataus', 'virhe', 'kaynnissa', 'muuLomake', 'valinta', 'korjausLomake', 'kirjauduOsio', 'luoOsio'];
+  const OSIOT = ['lataus', 'virhe', 'kaynnissa', 'muuLomake', 'valinta', 'korjausLomake', 'kirjauduOsio', 'luoOsio', 'kuvaLomake'];
   function naytaVain(...idt) { for (const id of OSIOT) $(id).hidden = !idt.includes(id); }
 
   function virhe(otsikko, teksti, uudelleen = true) {
@@ -452,7 +521,7 @@
 
   // ---------- Piirto ----------
   function piirra() {
-    $('tervehdys').textContent = 'Hei, ' + tila.nimi.split(' ')[0] + '!';
+    $('tervehdys').textContent = tervehdys(tila.nimi.split(' ')[0]);
     if (korjattava) {
       naytaVain('korjausLomake');
       $('historia').hidden = true; $('omaYhteenveto').hidden = true;
@@ -464,11 +533,13 @@
     const a = tila.avoin;
     const nakyvat = [];
     if (a) nakyvat.push('kaynnissa');
-    if (naytaMuu) nakyvat.push('muuLomake');
+    if (naytaKuvat) nakyvat.push('kuvaLomake');
+    else if (naytaMuu) nakyvat.push('muuLomake');
     else if (!a || a.tyyppi === 'siirtyma' || naytaValinta) nakyvat.push('valinta');
     naytaVain(...nakyvat);
     if (a) piirraKaynnissa();
-    if (naytaMuu) piirraMuu();
+    if (naytaKuvat) piirraKuvat();
+    else if (naytaMuu) piirraMuu();
     else if (nakyvat.includes('valinta')) piirraValinta();
     piirraHistoria();
     piirraSijaintiOhje();
@@ -542,6 +613,7 @@
     $('lahdeNappi').hidden = siirtyma && !unohtui;
     $('siirryNappi').hidden = a.tyyppi !== 'tyomaa' || unohtui;
     $('muuNappiTyossa').hidden = unohtui || naytaMuu || siirtyma;
+    $('kuvaNappiTyossa').hidden = a.tyyppi !== 'tyomaa' || unohtui || naytaKuvat;
     $('matkaNappiTyossa').hidden = unohtui || naytaMuu || siirtyma;
     $('tyomaalleNappi').hidden = a.tyyppi !== 'muu' || unohtui || naytaValinta;
     $('peruSiirtyma').hidden = !siirtyma || unohtui;
@@ -710,6 +782,155 @@
       TK.toast(TK.virhe(e), 'virhe');
     } finally {
       nappi.disabled = false; nappi.textContent = 'Tallenna';
+    }
+  });
+
+  // ---------- Kuvat työvaiheista ----------
+  function avaaKuvat() {
+    naytaKuvat = true; naytaMuu = false; naytaValinta = false;
+    piirra();
+    $('kuvaLomake').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  $('kuvaNappi').addEventListener('click', avaaKuvat);
+  $('kuvaNappiTyossa').addEventListener('click', avaaKuvat);
+
+  function piirraKuvat() {
+    const sel = $('kuvaTyomaa');
+    const nykyinen = sel.value || (tila.avoin && tila.avoin.tyomaa_id ? String(tila.avoin.tyomaa_id) : (valittu ? String(valittu) : ''));
+    sel.innerHTML = '<option value="">Valitse työmaa</option>' + tila.tyomaat.map(w => `<option value="${w.id}">${TK.esc(w.nimi)}</option>`).join('');
+    sel.value = nykyinen;
+    if (sel.dataset.ladattu !== sel.value) lataaVaiheet();
+    piirraEsikatselu();
+  }
+
+  let vaiheet = [];
+  async function lataaVaiheet() {
+    const sel = $('kuvaTyomaa');
+    sel.dataset.ladattu = sel.value;
+    vaiheet = [];
+    if (sel.value) {
+      try {
+        const { data, error } = await db.rpc('tyomaan_vaiheet', { p_avain: avain, p_tyomaa_id: Number(sel.value) });
+        if (!error) vaiheet = data || [];
+      } catch (e) { /* ehdotukset eivät ole välttämättömiä */ }
+    }
+    piirraVaiheet();
+  }
+  function piirraVaiheet() {
+    const nyt = $('kuvaVaihe').value.trim().toLowerCase();
+    $('vaiheLista').innerHTML = vaiheet.map(v => `<option value="${TK.esc(v.vaihe)}"></option>`).join('');
+    $('vaiheEhdotukset').innerHTML = vaiheet.slice(0, 8).map(v =>
+      `<button type="button" data-vaihe="${TK.esc(v.vaihe)}" aria-pressed="${v.vaihe.toLowerCase() === nyt}">${TK.esc(v.vaihe)} · ${v.kuvia}</button>`).join('');
+    $('vaiheEhdotukset').hidden = !vaiheet.length;
+  }
+  $('kuvaTyomaa').addEventListener('change', lataaVaiheet);
+  $('kuvaVaihe').addEventListener('input', piirraVaiheet);
+  $('vaiheEhdotukset').addEventListener('click', e => {
+    const b = e.target.closest('[data-vaihe]'); if (!b) return;
+    $('kuvaVaihe').value = b.dataset.vaihe; piirraVaiheet();
+  });
+
+  function piirraEsikatselu() {
+    $('kuvaEsikatselu').innerHTML = kuvaTiedostot.map((k, i) =>
+      `<figure class="${k.valmis ? 'valmis' : ''}"><img src="${k.url}" alt="">${k.valmis ? '' : `<button type="button" data-poista="${i}" aria-label="Poista kuva">×</button>`}</figure>`).join('');
+    const n = kuvaTiedostot.filter(k => !k.valmis).length;
+    $('kuvaTallenna').disabled = !n;
+    $('kuvaTallenna').textContent = n ? `Tallenna ${n} ${n === 1 ? 'kuva' : 'kuvaa'}` : 'Tallenna kuvat';
+    $('kuvaValitseTeksti').textContent = kuvaTiedostot.length ? 'Lisää kuvia' : 'Ota kuva tai valitse kuvat';
+  }
+  $('kuvaValitse').addEventListener('click', () => $('kuvaTiedostot').click());
+  $('kuvaTiedostot').addEventListener('change', () => {
+    const uudet = [...$('kuvaTiedostot').files].filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|heic|heif|webp)$/i.test(f.name));
+    for (const f of uudet) {
+      if (kuvaTiedostot.length >= 20) { TK.toast('Kerralla voi lähettää enintään 20 kuvaa.', 'virhe'); break; }
+      kuvaTiedostot.push({ file: f, url: URL.createObjectURL(f) });
+    }
+    $('kuvaTiedostot').value = '';
+    piirraEsikatselu();
+  });
+  $('kuvaEsikatselu').addEventListener('click', e => {
+    const b = e.target.closest('[data-poista]'); if (!b) return;
+    const [k] = kuvaTiedostot.splice(Number(b.dataset.poista), 1);
+    URL.revokeObjectURL(k.url);
+    piirraEsikatselu();
+  });
+  function tyhjennaKuvat() {
+    for (const k of kuvaTiedostot) URL.revokeObjectURL(k.url);
+    kuvaTiedostot = [];
+  }
+  $('kuvaPeru').addEventListener('click', () => { tyhjennaKuvat(); naytaKuvat = false; piirra(); });
+
+  // Pienentää kuvan JPEG-muotoon (puhelimen kuvan suunta huomioidaan)
+  async function pienenna(file, max, laatu) {
+    let kuva;
+    try { kuva = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+    catch (e) {
+      kuva = await new Promise((ok, ei) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ei(new Error('Kuvaa ei voitu avata.')); i.src = URL.createObjectURL(file); });
+    }
+    const w = kuva.width || kuva.naturalWidth, h = kuva.height || kuva.naturalHeight;
+    const s = Math.min(1, max / Math.max(w, h));
+    const c = document.createElement('canvas');
+    c.width = Math.round(w * s); c.height = Math.round(h * s);
+    c.getContext('2d').drawImage(kuva, 0, 0, c.width, c.height);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/jpeg', laatu));
+    if (!blob) throw new Error('Kuvan käsittely ei onnistunut.');
+    return { blob, leveys: c.width, korkeus: c.height };
+  }
+
+  $('kuvaTallenna').addEventListener('click', async () => {
+    const tyomaaId = Number($('kuvaTyomaa').value) || null, vaihe = $('kuvaVaihe').value.trim();
+    if (!tyomaaId) return TK.toast('Valitse työmaa.', 'virhe');
+    if (!vaihe) { TK.toast('Kirjoita työvaihe.', 'virhe'); $('kuvaVaihe').focus(); return; }
+    const jono = kuvaTiedostot.filter(k => !k.valmis);
+    if (!jono.length) return;
+    const nappi = $('kuvaTallenna'), tilaEl = $('kuvaTila');
+    nappi.disabled = true; $('kuvaPeru').disabled = true;
+    let onnistui = 0;
+    try {
+      tilaEl.textContent = 'Haetaan sijaintia…';
+      const s = kasitteleSijainti(await TK.sijainti(120000));
+      const { data: polut, error: lupaVirhe } = await db.rpc('kuva_luvat', { p_avain: avain, p_tyomaa_id: tyomaaId, p_maara: jono.length });
+      if (lupaVirhe) throw lupaVirhe;
+      for (let i = 0; i < jono.length; i++) {
+        const k = jono[i], perus = polut[i];
+        tilaEl.textContent = `Tallennetaan kuvaa ${i + 1}/${jono.length}…`;
+        try {
+          const iso = await pienenna(k.file, 1600, 0.82);
+          const pieni = await pienenna(k.file, 480, 0.72);
+          const u1 = await db.storage.from('kuvat').upload(perus + '.jpg', iso.blob, { contentType: 'image/jpeg', upsert: false });
+          if (u1.error) throw u1.error;
+          const u2 = await db.storage.from('kuvat').upload(perus + '_p.jpg', pieni.blob, { contentType: 'image/jpeg', upsert: false });
+          if (u2.error) console.warn('Pikkukuva ei tallentunut', u2.error);
+          const otettu = k.file.lastModified ? new Date(k.file.lastModified).toISOString() : null;
+          const { error } = await db.rpc('tallenna_kuva', {
+            p_avain: avain, p_perus: perus, p_vaihe: vaihe, p_kommentti: $('kuvaKommentti').value || null,
+            p_lat: s?.lat ?? null, p_lon: s?.lon ?? null, p_leveys: iso.leveys, p_korkeus: iso.korkeus, p_otettu: otettu
+          });
+          if (error) throw error;
+          k.valmis = true; onnistui++;
+          piirraEsikatselu();
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+    } catch (e) {
+      TK.toast(TK.virhe(e), 'virhe');
+    } finally {
+      nappi.disabled = false; $('kuvaPeru').disabled = false;
+      tilaEl.textContent = 'Kuvat pienennetään ennen lähetystä, joten ne eivät kuluta paljon dataa.';
+    }
+    const epaonnistui = jono.length - onnistui;
+    if (onnistui && !epaonnistui) {
+      TK.toast(`${onnistui} ${onnistui === 1 ? 'kuva' : 'kuvaa'} tallennettu: ${vaihe}`);
+      tyhjennaKuvat(); $('kuvaKommentti').value = '';
+      naytaKuvat = false; piirra();
+      $('kuvaTyomaa').dataset.ladattu = '';
+    } else if (onnistui) {
+      kuvaTiedostot = kuvaTiedostot.filter(k => { if (k.valmis) URL.revokeObjectURL(k.url); return !k.valmis; });
+      piirraEsikatselu();
+      TK.toast(`${onnistui} kuvaa tallennettu, ${epaonnistui} epäonnistui. Paina Tallenna uudelleen.`, 'virhe');
+    } else if (jono.length) {
+      TK.toast('Kuvia ei saatu tallennettua. Tarkista nettiyhteys ja yritä uudelleen.', 'virhe');
     }
   });
 

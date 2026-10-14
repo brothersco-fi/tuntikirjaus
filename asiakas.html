@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Työn dokumentointi · Brothers &amp; Co.</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#F3F0EA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#141412" media="(prefers-color-scheme: dark)">
+<link rel="icon" type="image/png" href="ikoni-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="tyyli.css?v=4">
+<style>
+  .kehys { max-width: 1160px; margin: 0 auto; padding-inline: 20px; }
+
+  /* Yläpalkki */
+  .palkki { border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+  .palkki .kehys { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; }
+  .merkki { font: 500 .78rem/1 var(--font-body); letter-spacing: .24em; text-transform: uppercase; color: var(--ink); }
+
+  /* Otsikko-osa */
+  .hero { padding-block: clamp(40px, 8vw, 96px) clamp(32px, 5vw, 56px); display: grid; gap: 22px; }
+  .hero h1 { font-size: clamp(2.3rem, 7.5vw, 5.4rem); line-height: .98; letter-spacing: -.015em; max-width: 22ch; }
+  .tiedot { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 18px 28px; margin: 18px 0 0; padding-top: 22px; border-top: 1px solid var(--line); }
+  .tiedot div { display: grid; gap: 6px; min-width: 0; }
+  .tiedot dt { font: 500 .68rem/1.2 var(--font-body); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  .tiedot dd { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
+
+  /* Sisältö */
+  .sisalto { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 56px; align-items: start; padding-block: 8px 72px; }
+  .vaiheet-nav { position: sticky; top: 24px; display: grid; gap: 0; }
+  .vaiheet-nav .eyebrow { margin-bottom: 12px; }
+  .vaiheet-nav a {
+    display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: baseline;
+    padding: 9px 0; border-top: 1px solid var(--line); text-decoration: none; color: var(--ink-2);
+    transition: color .15s ease;
+  }
+  .vaiheet-nav a:last-child { border-bottom: 1px solid var(--line); }
+  .vaiheet-nav a:hover { color: var(--ink); }
+  .vaiheet-nav .nro { font-size: .75rem; color: var(--muted); letter-spacing: .06em; }
+  .vaiheet-nav .lkm { font-size: .8rem; color: var(--muted); }
+
+  .vaihe { display: grid; gap: 20px; scroll-margin-top: 24px; }
+  .vaihe + .vaihe { margin-top: clamp(48px, 7vw, 80px); }
+  .vaihe-otsikko { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .vaihe-otsikko .nro { font: 400 .8rem/1 var(--font-body); letter-spacing: .1em; color: var(--muted); }
+  .vaihe-otsikko h2 { font-size: clamp(1.9rem, 3.6vw, 2.6rem); }
+  .vaihe-otsikko .meta { font-size: .85rem; color: var(--muted); white-space: nowrap; }
+
+  .ruudukko { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 28px 20px; }
+  .kuva { display: grid; gap: 10px; padding: 0; border: 0; background: none; text-align: left; cursor: zoom-in; color: inherit; }
+  .kuva .kehys-kuva { overflow: hidden; border-radius: 2px; background: var(--surface-2); aspect-ratio: 4 / 3; }
+  .kuva img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .6s cubic-bezier(.2, .7, .2, 1); }
+  .kuva:hover img { transform: scale(1.025); }
+  .kuva .teksti { display: grid; gap: 3px; }
+  .kuva .aika { font-size: .76rem; letter-spacing: .06em; color: var(--muted); }
+  .kuva .kommentti { font-size: .95rem; line-height: 1.4; color: var(--ink-2); }
+
+  .tila { text-align: center; padding: 80px 16px 100px; display: grid; gap: 12px; justify-items: center; }
+  .tila h2 { font-size: 2.4rem; }
+  .tila p { margin: 0; max-width: 42ch; color: var(--muted); }
+
+  .alaosa { border-top: 1px solid var(--line); padding-block: 28px calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .alaosa .kehys { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: .85rem; }
+  .alaosa .nimi { font: 400 1.35rem/1 var(--font-display); color: var(--ink); }
+
+  /* Kuvan katselu */
+  .katselu { position: fixed; inset: 0; background: #0E0E0C; z-index: 40; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; color: #E9E5DD; }
+  .katselu .ylapalkki { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px; }
+  .katselu .laskuri { font-size: .78rem; letter-spacing: .14em; opacity: .7; }
+  .katselu .kuva-alue { position: relative; display: grid; place-items: center; min-height: 0; padding: 0 12px; }
+  .katselu img { max-width: 100%; max-height: calc(100vh - 170px); max-height: calc(100dvh - 170px); object-fit: contain; }
+  .katselu .kuvateksti { padding: 14px 16px calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; display: grid; gap: 4px; }
+  .katselu .kuvateksti strong { font: 400 1.5rem/1.1 var(--font-display); }
+  .katselu .kuvateksti span { opacity: .7; font-size: .88rem; }
+  .katselu button { background: transparent; color: #E9E5DD; border: 1px solid rgb(233 229 221 / .35); border-radius: var(--r-s); padding: 8px 14px; font-weight: 500; cursor: pointer; min-height: 40px; }
+  .katselu button:hover { border-color: #E9E5DD; }
+  .katselu .nuoli { position: absolute; top: 50%; transform: translateY(-50%); width: 48px; height: 48px; padding: 0; font-size: 1.2rem; line-height: 1; border-radius: 50%; background: rgb(14 14 12 / .5); }
+  .katselu .nuoli.ed { left: 14px; }
+  .katselu .nuoli.seur { right: 14px; }
+  .katselu .nuoli:disabled { opacity: .2; cursor: default; }
+
+  @media (max-width: 820px) {
+    .sisalto { grid-template-columns: 1fr; gap: 28px; }
+    .vaiheet-nav { position: static; }
+  }
+  @media (max-width: 560px) {
+    .kehys { padding-inline: 18px; }
+    .tiedot { grid-template-columns: 1fr 1fr; }
+    .ruudukko { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+    .kuva .kommentti { font-size: .88rem; }
+    .vaihe-otsikko { grid-template-columns: auto 1fr; }
+    .vaihe-otsikko .meta { grid-column: 2; margin-top: -8px; }
+    .katselu .nuoli { display: none; }
+    #pdfNappi { min-height: 38px; padding: 0 .9em; font-size: .85rem; }
+  }
+  @media print {
+    .palkki, .vaiheet-nav, .katselu { display: none !important; }
+    .sisalto { grid-template-columns: 1fr; }
+    .kuva { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header class="palkki">
+  <div class="kehys">
+    <span class="merkki" id="yritys">Brothers &amp; Co.</span>
+    <button type="button" class="btn btn-pieni" id="pdfNappi" hidden>Lataa PDF</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero kehys" id="hero">
+    <div class="eyebrow">Työn dokumentointi</div>
+    <h1 id="otsikko">&nbsp;</h1>
+    <dl class="tiedot" id="tiedot" hidden></dl>
+  </section>
+
+  <div class="tila kehys" id="lataus"><p>Ladataan kuvia…</p></div>
+
+  <div class="tila kehys" id="virhe" hidden>
+    <h2 id="virheOtsikko">Linkki ei ole voimassa</h2>
+    <p id="virheTeksti">Tarkista, että avasit koko linkin. Jos ongelma jatkuu, pyydä uusi linkki yhteyshenkilöltäsi.</p>
+  </div>
+
+  <div class="tila kehys" id="tyhja" hidden>
+    <h2>Ei vielä kuvia</h2>
+    <p>Kuvia lisätään tänne työn edetessä. Avaa linkki myöhemmin uudelleen.</p>
+  </div>
+
+  <div class="sisalto kehys" id="sisalto" hidden>
+    <nav class="vaiheet-nav" id="vaiheNav" aria-label="Työvaiheet"></nav>
+    <div id="vaiheet"></div>
+  </div>
+</main>
+
+<footer class="alaosa" id="alaosa" hidden>
+  <div class="kehys"><span class="nimi" id="alaNimi">Brothers &amp; Co.</span><span>Kuvat on otettu työmaalla työn aikana.</span></div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="config.js?v=3"></script>
+<script src="apu.js?v=3"></script>
+<script src="raportti.js?v=6"></script>
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = TK.esc;
+  let tyomaa = null, kuvat = [], jarjestys = [];
+
+  const yritys = TK.cfg.yritys || 'Brothers & Co.';
+  $('yritys').textContent = yritys;
+  $('alaNimi').textContent = yritys;
+
+  function nayta(id) {
+    for (const x of ['lataus', 'virhe', 'tyhja', 'sisalto']) $(x).hidden = x !== id;
+    $('hero').hidden = id === 'virhe';
+  }
+
+  // Vaiheet ensimmäisen kuvan mukaan aikajärjestyksessä, kuvat vaiheen sisällä aikajärjestyksessä
+  function ryhmittele(lista) {
+    const ryhmat = new Map();
+    for (const k of [...lista].sort((a, b) => new Date(a.otettu) - new Date(b.otettu))) {
+      if (!ryhmat.has(k.vaihe)) ryhmat.set(k.vaihe, []);
+      ryhmat.get(k.vaihe).push(k);
+    }
+    return ryhmat;
+  }
+
+  function aikavali(lista) {
+    if (!lista.length) return '';
+    const ajat = lista.map(k => new Date(k.otettu)).sort((a, b) => a - b);
+    const a = TK.pvm(ajat[0]), b = TK.pvm(ajat[ajat.length - 1]);
+    return a === b ? a : `${a} – ${b}`;
+  }
+  const nro = n => String(n).padStart(2, '0');
+  const kpl = n => `${n} ${n === 1 ? 'kuva' : 'kuvaa'}`;
+
+  function piirra() {
+    $('otsikko').textContent = tyomaa.nimi;
+    document.title = `${tyomaa.nimi} · Työn dokumentointi`;
+    const ryhmat = ryhmittele(kuvat);
+    jarjestys = [...ryhmat.values()].flat();
+
+    const tiedot = [];
+    if (tyomaa.osoite) tiedot.push(['Osoite', tyomaa.osoite]);
+    if (tyomaa.asiakas) tiedot.push(['Asiakas', tyomaa.asiakas]);
+    if (kuvat.length) {
+      tiedot.push(['Ajanjakso', aikavali(kuvat)]);
+      tiedot.push(['Sisältö', `${ryhmat.size} ${ryhmat.size === 1 ? 'työvaihe' : 'työvaihetta'} · ${kpl(kuvat.length)}`]);
+    }
+    $('tiedot').innerHTML = tiedot.map(([t, a]) => `<div><dt>${t}</dt><dd>${esc(a)}</dd></div>`).join('');
+    $('tiedot').hidden = !tiedot.length;
+
+    if (!kuvat.length) { nayta('tyhja'); return; }
+    $('pdfNappi').hidden = false;
+
+    let i = 0, n = 0, nav = '<div class="eyebrow">Työvaiheet</div>', html = '';
+    for (const [vaihe, lista] of ryhmat) {
+      const id = 'vaihe-' + (++n);
+      nav += `<a href="#${id}"><span class="nro">${nro(n)}</span><span>${esc(vaihe)}</span><span class="lkm">${lista.length}</span></a>`;
+      html += `<section class="vaihe" id="${id}">
+        <div class="vaihe-otsikko"><span class="nro">${nro(n)}</span><h2>${esc(vaihe)}</h2><span class="meta">${aikavali(lista)} · ${kpl(lista.length)}</span></div>
+        <div class="ruudukko">${lista.map(k => `
+          <button type="button" class="kuva" data-i="${i++}" aria-label="Avaa kuva: ${esc(vaihe)}, ${TK.pvm(k.otettu)}">
+            <div class="kehys-kuva"><img src="${esc(k.pikku_url)}" srcset="${esc(k.pikku_url)} 480w, ${esc(k.url)} 1600w" sizes="(max-width: 560px) 50vw, 320px"
+              alt="${esc(vaihe)}${k.kommentti ? ' – ' + esc(k.kommentti) : ''}" loading="lazy" decoding="async"></div>
+            <div class="teksti">
+              <span class="aika">${TK.pvm(k.otettu)} · klo ${TK.aika(k.otettu)}</span>
+              ${k.kommentti ? `<span class="kommentti">${esc(k.kommentti)}</span>` : ''}
+            </div>
+          </button>`).join('')}
+        </div>
+      </section>`;
+    }
+    $('vaiheNav').innerHTML = nav;
+    $('vaiheet').innerHTML = html;
+    $('alaosa').hidden = false;
+    nayta('sisalto');
+  }
+
+  $('vaiheet').addEventListener('click', e => {
+    const b = e.target.closest('.kuva');
+    if (b) avaa(Number(b.dataset.i));
+  });
+
+  // ---------- Kuvan katselu ----------
+  let katselu = null, nyt = 0;
+  function avaa(i) {
+    nyt = i;
+    if (!katselu) {
+      katselu = document.createElement('div');
+      katselu.className = 'katselu';
+      katselu.setAttribute('role', 'dialog');
+      katselu.setAttribute('aria-modal', 'true');
+      katselu.innerHTML = `
+        <div class="ylapalkki"><span class="laskuri"></span><button type="button" class="sulje">Sulje</button></div>
+        <div class="kuva-alue">
+          <img alt="">
+          <button type="button" class="nuoli ed" aria-label="Edellinen">←</button>
+          <button type="button" class="nuoli seur" aria-label="Seuraava">→</button>
+        </div>
+        <div class="kuvateksti"><strong></strong><span></span></div>`;
+      katselu.querySelector('.sulje').onclick = sulje;
+      katselu.querySelector('.ed').onclick = () => siirry(-1);
+      katselu.querySelector('.seur').onclick = () => siirry(1);
+      katselu.querySelector('.kuva-alue').addEventListener('click', e => { if (e.target.classList.contains('kuva-alue')) sulje(); });
+      // Pyyhkäisy puhelimella
+      let x0 = null;
+      katselu.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+      katselu.addEventListener('touchend', e => {
+        if (x0 === null) return;
+        const dx = e.changedTouches[0].clientX - x0; x0 = null;
+        if (Math.abs(dx) > 50) siirry(dx < 0 ? 1 : -1);
+      });
+      document.body.appendChild(katselu);
+      document.addEventListener('keydown', nappain);
+      document.body.style.overflow = 'hidden';
+      katselu.querySelector('.sulje').focus();
+    }
+    paivita();
+  }
+  function paivita() {
+    const k = jarjestys[nyt];
+    const img = katselu.querySelector('img');
+    img.src = k.pikku_url;                 // pieni heti näkyviin, iso perään
+    const iso = new Image();
+    iso.onload = () => { if (jarjestys[nyt] === k) img.src = k.url; };
+    iso.src = k.url;
+    img.alt = k.vaihe;
+    katselu.querySelector('.laskuri').textContent = `${nro(nyt + 1)} / ${nro(jarjestys.length)}`;
+    katselu.querySelector('.kuvateksti strong').textContent = k.vaihe;
+    katselu.querySelector('.kuvateksti span').textContent = `${TK.pvm(k.otettu)} klo ${TK.aika(k.otettu)}${k.kommentti ? ' · ' + k.kommentti : ''}`;
+    katselu.querySelector('.ed').disabled = nyt === 0;
+    katselu.querySelector('.seur').disabled = nyt === jarjestys.length - 1;
+  }
+  function siirry(d) {
+    const u = nyt + d;
+    if (u < 0 || u >= jarjestys.length) return;
+    nyt = u; paivita();
+  }
+  function nappain(e) {
+    if (e.key === 'Escape') sulje();
+    else if (e.key === 'ArrowLeft') siirry(-1);
+    else if (e.key === 'ArrowRight') siirry(1);
+  }
+  function sulje() {
+    if (!katselu) return;
+    const i = nyt;
+    katselu.remove(); katselu = null;
+    document.removeEventListener('keydown', nappain);
+    document.body.style.overflow = '';
+    const b = document.querySelector(`.kuva[data-i="${i}"]`);
+    if (b) b.focus();
+  }
+
+  // ---------- PDF ----------
+  $('pdfNappi').addEventListener('click', async () => {
+    const b = $('pdfNappi'); b.disabled = true;
+    try {
+      await TKRaportti.luo({
+        tyomaa, kuvat, yritys,
+        eteneminen: (i, n) => { b.textContent = `Muodostetaan ${i}/${n}…`; }
+      });
+    } catch (e) {
+      TK.toast(TK.virhe(e), 'virhe');
+    } finally {
+      b.disabled = false; b.textContent = 'Lataa PDF';
+    }
+  });
+
+  // ---------- Lataus ----------
+  async function lataa() {
+    const avain = new URLSearchParams(location.search).get('t');
+    if (!avain || !TK.konfiguroitu()) { nayta('virhe'); return; }
+    try {
+      const db = TK.client();
+      const { data, error } = await db.rpc('asiakas_kuvat', { p_jakoavain: avain });
+      if (error) throw error;
+      tyomaa = data.tyomaa;
+      kuvat = (data.kuvat || []).filter(k => k.url);
+      piirra();
+    } catch (e) {
+      const v = TK.virhe(e);
+      if (!/Linkki ei ole voimassa/.test(v)) { $('virheOtsikko').textContent = 'Kuvia ei saatu ladattua'; $('virheTeksti').textContent = v; }
+      nayta('virhe');
+    }
+  }
+  lataa();
+})();
+</script>
+</body>
+</html>

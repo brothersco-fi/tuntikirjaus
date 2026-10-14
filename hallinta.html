@@ -8,96 +8,133 @@
 <link rel="icon" type="image/png" href="ikoni-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="tyyli.css?v=3">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="tyyli.css?v=4">
 <style>
   body { font-size: 15px; }
-  .sivu { max-width: 1280px; margin: 0 auto; padding-inline: 16px; padding-block: 0 48px; }
+  .sivu { max-width: 1280px; margin: 0 auto; padding-inline: 20px; padding-block: 0 56px; }
 
   /* ---------- Kirjautuminen ---------- */
   .kirjaudu { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
-  .kirjaudu form { width: min(100%, 380px); background: var(--surface); border-radius: 16px; padding: 28px; box-shadow: var(--shadow); display: grid; gap: 16px; }
-  .kirjaudu h1 { font-size: 2.2rem; }
-  .lomakevirhe { color: var(--bad); font-weight: 600; min-height: 1.2em; margin: 0; }
+  .kirjaudu form { width: min(100%, 380px); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 32px 28px; display: grid; gap: 18px; }
+  .kirjaudu h1 { font-size: 2.6rem; margin-top: -6px; }
+  .lomakevirhe { color: var(--bad); font-weight: 500; min-height: 1.2em; margin: 0; }
 
   /* ---------- Yläpalkki ---------- */
-  .yla { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); }
-  .yla-sisus { max-width: 1280px; margin: 0 auto; padding: 12px 16px 0; display: grid; gap: 10px; }
+  .yla { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .yla-sisus { max-width: 1280px; margin: 0 auto; padding: 16px 20px 0; display: grid; gap: 12px; }
   .yla-rivi { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .brandi h1 { font-size: 1.7rem; }
-  .kayttaja { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .9rem; flex-wrap: wrap; }
-  .tabit { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+  .brandi { display: grid; gap: 4px; }
+  .brandi h1 { font-size: 1.9rem; }
+  .kayttaja { display: flex; align-items: center; gap: 14px; color: var(--muted); font-size: .88rem; flex-wrap: wrap; }
+  .tabit { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; margin-inline: -4px; }
   .tabit::-webkit-scrollbar { display: none; }
   .tabit button {
     border: 0; background: none; cursor: pointer; white-space: nowrap;
-    padding: 10px 14px 12px; font: 600 1rem/1 var(--font-body); color: var(--muted);
-    border-bottom: 3px solid transparent;
+    padding: 10px 12px 13px; font: 500 .95rem/1 var(--font-body); color: var(--muted);
+    border-bottom: 1.5px solid transparent; transition: color .15s ease, border-color .15s ease;
   }
-  .tabit button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); }
-  .tabit .maara { display: inline-grid; place-items: center; min-width: 1.5em; height: 1.5em; margin-left: .35em; padding: 0 .35em; border-radius: 999px; background: var(--on); color: #fff; font-size: .78rem; }
+  .tabit button:hover { color: var(--ink); }
+  .tabit button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--ink); }
+  .tabit .maara { display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; margin-left: .4em; padding: 0 .4em; border-radius: 999px; background: var(--on); color: var(--surface); font-size: .72rem; font-weight: 600; }
 
-  main { display: grid; gap: 22px; padding-top: 22px; }
+  main { display: grid; gap: 24px; padding-top: 30px; }
   main > *, section { min-width: 0; }
-  section[data-nakyma] { display: grid; gap: 14px; }
+  section[data-nakyma] { display: grid; gap: 16px; }
   section[data-nakyma] > * { min-width: 0; }
-  section[data-nakyma] > .alaotsikko, section[data-nakyma] > div > .alaotsikko { margin-top: 10px; }
+  section[data-nakyma] > .alaotsikko, section[data-nakyma] > div > .alaotsikko { margin-top: 14px; }
   .otsikko { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-  .otsikko h2 { font-size: 1.9rem; }
-  .napit { display: flex; gap: 8px; flex-wrap: wrap; }
+  .otsikko h2 { font-size: 2.5rem; }
+  .napit { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
   /* ---------- Suodatin ---------- */
-  .suodatin { display: flex; gap: 12px; flex-wrap: wrap; align-items: end; background: var(--surface); padding: 14px; border-radius: 12px; box-shadow: var(--shadow); }
+  .suodatin { display: flex; gap: 14px; flex-wrap: wrap; align-items: end; background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: var(--r); }
   .suodatin label { min-width: 150px; flex: 1 1 150px; }
-  .suodatin .jakso { font: 600 1.15rem/1.2 var(--font-display); flex: 1 1 100%; color: var(--muted); }
-  .suodatin .jakso b { color: var(--ink); }
+  .suodatin .jakso { font: 400 1.35rem/1.2 var(--font-display); flex: 1 1 100%; color: var(--muted); }
+  .suodatin .jakso b { color: var(--ink); font-weight: 400; }
 
   /* ---------- Tunnusluvut ---------- */
-  .luvut { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
-  .luku { background: var(--surface); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); display: grid; gap: 4px; }
-  .luku .arvo { font: 700 2rem/1 var(--font-display); }
-  .luku .selite { color: var(--muted); font-size: .85rem; }
+  .luvut { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+  .luku { padding: 16px 18px 18px; display: grid; gap: 6px; border-left: 1px solid var(--line); border-top: 1px solid var(--line); margin: -1px 0 0 -1px; }
+  .luku .arvo { font: 400 2.4rem/1 var(--font-display); }
+  .luku .selite { color: var(--muted); font-size: .8rem; letter-spacing: .02em; }
 
   /* ---------- Nyt-näkymä ---------- */
   .nyt-ryhmat { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
-  .nyt-ryhma { background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); border-top: 5px solid var(--on); overflow: hidden; }
-  .nyt-ryhma header { padding: 14px 16px 8px; display: grid; gap: 2px; }
-  .nyt-ryhma h3 { font-size: 1.35rem; }
+  .nyt-ryhma { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--on); border-radius: var(--r); overflow: hidden; }
+  .nyt-ryhma header { padding: 16px 18px 10px; display: grid; gap: 3px; }
+  .nyt-ryhma h3 { font-size: 1.55rem; }
   .nyt-ryhma ul { list-style: none; margin: 0; padding: 0; }
-  .nyt-ryhma li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line); }
+  .nyt-ryhma li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; align-items: center; padding: 11px 18px; border-top: 1px solid var(--line); }
   .nyt-ryhma li > div:first-child { flex: 1 1 170px; min-width: 0; }
-  .nyt-ryhma .kuka { font-weight: 700; }
-  .nyt-ryhma .milloin { color: var(--muted); font-size: .9rem; }
+  .nyt-ryhma .kuka { font-weight: 600; }
+  .nyt-ryhma .milloin { color: var(--muted); font-size: .88rem; }
   .nyt-ryhma .oikea { display: flex; gap: 6px; justify-content: end; flex-wrap: wrap; }
-  .tyhja { background: var(--surface); border-radius: 12px; padding: 22px; color: var(--muted); box-shadow: var(--shadow); }
+  .tyhja { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; color: var(--muted); }
 
   /* ---------- Taulukot ---------- */
-  .taulu-kehys { overflow-x: auto; background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); }
-  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-  th, td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { font: 600 .74rem/1.2 var(--font-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); position: sticky; top: 0; white-space: nowrap; }
+  .taulu-kehys { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font: 500 .68rem/1.2 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); background: var(--surface); position: sticky; top: 0; white-space: nowrap; padding-top: 13px; }
   td.n, th.n { text-align: right; white-space: nowrap; }
   td.nw { white-space: nowrap; }
-  tbody tr:hover td { background: var(--surface-2); }
-  tfoot td { font-weight: 700; border-bottom: 0; background: var(--surface-2); }
+  tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tfoot td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--line-strong); }
   .komm { min-width: 180px; max-width: 360px; }
-  .komm .huomio { display: block; color: var(--warn); font-size: .82rem; font-weight: 600; }
+  .komm .huomio { display: block; color: var(--warn); font-size: .8rem; font-weight: 500; }
   .himmea td { color: var(--muted); }
-  .palkki { height: 8px; border-radius: 4px; background: var(--on); opacity: .75; min-width: 2px; }
+  .palkki { height: 4px; border-radius: 2px; background: var(--accent); min-width: 2px; margin-top: 7px; }
   .palkki-solu { width: 22%; min-width: 120px; vertical-align: middle; }
-  h3.alaotsikko { font-size: 1.35rem; margin-bottom: 8px; }
+  h3.alaotsikko { font-size: 1.6rem; margin-bottom: 10px; }
   .linkkisolu { display: flex; gap: 6px; flex-wrap: wrap; }
 
   /* ---------- Dialogit ---------- */
-  dialog { border: 0; border-radius: 16px; padding: 0; width: min(560px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 20px 60px rgb(0 0 0 / .3); }
-  dialog::backdrop { background: rgb(10 14 12 / .55); }
-  dialog form { display: grid; gap: 14px; padding: 22px; }
-  dialog h2 { font-size: 1.6rem; }
+  dialog { border: 1px solid var(--line); border-radius: var(--r); padding: 0; width: min(560px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px rgb(0 0 0 / .35); }
+  dialog::backdrop { background: rgb(20 20 18 / .45); backdrop-filter: blur(2px); }
+  dialog form { display: grid; gap: 16px; padding: 26px; }
+  dialog h2 { font-size: 2rem; }
   .kaksi { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   @media (max-width: 520px) { .kaksi { grid-template-columns: 1fr; } }
   .dialogi-napit { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
   .dialogi-napit .oikealle { display: flex; gap: 8px; margin-left: auto; }
-  .tietorivi { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; font-size: .9rem; display: grid; gap: 4px; }
-  .linkkilaatikko { font-family: ui-monospace, Menlo, monospace; font-size: .82rem; word-break: break-all; background: var(--surface-2); padding: 8px 10px; border-radius: 8px; user-select: all; }
+  .tietorivi { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-s); padding: 11px 13px; font-size: .88rem; display: grid; gap: 4px; }
+  .linkkilaatikko { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: .8rem; word-break: break-all; background: var(--bg); border: 1px solid var(--line); padding: 9px 11px; border-radius: var(--r-s); user-select: all; }
+
+  /* ---------- Kuvat ---------- */
+  .kuva-tyokalut { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: var(--r); }
+  .kuva-tyokalut label { min-width: 200px; flex: 1 1 220px; }
+  .jako { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); padding: 16px; border-radius: var(--r); }
+  .jako .rivi { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .vaihe { display: grid; gap: 12px; }
+  .vaihe + .vaihe { margin-top: 18px; }
+  .vaihe-otsikko { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  .vaihe-otsikko h3 { font-size: 1.75rem; }
+  .vaihe-otsikko input { max-width: 320px; }
+  .kuvaruudukko { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
+  .kuvakortti { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; transition: border-color .15s ease; }
+  .kuvakortti.jaettu { border-color: var(--on); box-shadow: inset 0 0 0 1px var(--on); }
+  .kuvakortti button.kuva { border: 0; padding: 0; background: var(--surface-2); cursor: zoom-in; aspect-ratio: 4 / 3; overflow: hidden; display: block; width: 100%; }
+  .kuvakortti img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s ease; }
+  .kuvakortti button.kuva:hover img { transform: scale(1.03); }
+  .kuvakortti .teksti { padding: 10px 12px 4px; font-size: .84rem; display: grid; gap: 2px; min-width: 0; }
+  .kuvakortti .teksti .muted { font-size: .8rem; }
+  .kuvakortti .alaosa { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 12px 12px; }
+  .kuvakortti .valinta { font-size: .84rem; }
+  @media (max-width: 560px) {
+    .tabit { -webkit-mask-image: linear-gradient(to right, #000 82%, transparent); mask-image: linear-gradient(to right, #000 82%, transparent); }
+    .otsikko h2 { font-size: 2.1rem; }
+    .kuvaruudukko { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .kuvakortti .alaosa { flex-wrap: wrap; }
+    .kuvakortti .teksti { padding: 8px 10px 2px; }
+    .kuvakortti .alaosa { padding: 6px 10px 10px; }
+  }
+  .katselu { position: fixed; inset: 0; background: #0E0E0C; display: grid; place-items: center; z-index: 40; padding: 16px; }
+  .katselu img { max-width: 100%; max-height: calc(100vh - 110px); max-height: calc(100dvh - 110px); border-radius: 2px; }
+  .katselu .kuvateksti { color: #E9E5DD; text-align: center; margin-top: 12px; font-size: .9rem; }
+  .katselu button { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 14px; background: transparent; color: #E9E5DD; border: 1px solid rgb(233 229 221 / .4); border-radius: var(--r-s); padding: 8px 14px; font-weight: 500; cursor: pointer; }
+  .katselu button:hover { border-color: #E9E5DD; }
 </style>
 </head>
 <body>
@@ -128,6 +165,7 @@
         <button role="tab" data-tab="yhteenveto">Yhteenveto</button>
         <button role="tab" data-tab="tyomaat">Työmaat</button>
         <button role="tab" data-tab="tekijat">Tekijät</button>
+        <button role="tab" data-tab="kuvat">Kuvat</button>
       </nav>
     </div>
   </header>
@@ -190,6 +228,26 @@
           <div class="napit"><label class="valinta"><input type="checkbox" id="naytaArkTyomaat"> Näytä arkistoidut</label><button class="btn btn-ensi" type="button" id="lisaaTyomaa">Lisää työmaa</button></div>
         </div>
         <div class="taulu-kehys" id="tyomaaTaulu"></div>
+      </section>
+
+      <!-- ---------- Kuvat ---------- -->
+      <section data-nakyma="kuvat" hidden>
+        <div class="otsikko"><h2>Kuvat</h2></div>
+        <div class="kuva-tyokalut">
+          <label>Työmaa <select id="kuvaTyomaa"></select></label>
+          <label>Näytä
+            <select id="kuvaSuodatus">
+              <option value="kaikki">Kaikki kuvat</option>
+              <option value="jaetut">Vain asiakkaalle valitut</option>
+            </select>
+          </label>
+          <div class="napit">
+            <button class="btn" type="button" id="kuvaPdf">Lataa PDF-raportti</button>
+            <label class="valinta"><input type="checkbox" id="kuvaPdfJaetut" checked> vain asiakkaalle valitut</label>
+          </div>
+        </div>
+        <div class="jako" id="kuvaJako" hidden></div>
+        <div id="kuvaSisalto"></div>
       </section>
 
       <!-- ---------- Tekijät ---------- -->
@@ -295,6 +353,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="raportti.js?v=6"></script>
 <script src="config.js?v=3"></script>
 <script src="apu.js?v=3"></script>
 <script>
@@ -352,7 +411,7 @@
     $('sovellus').hidden = false;
     await lataaPerustiedot();
     const alku = (location.hash || '').replace('#', '');
-    vaihdaTab(['nyt', 'kirjaukset', 'yhteenveto', 'tyomaat', 'tekijat'].includes(alku) ? alku : 'nyt');
+    vaihdaTab(['nyt', 'kirjaukset', 'yhteenveto', 'tyomaat', 'tekijat', 'kuvat'].includes(alku) ? alku : 'nyt');
     setInterval(() => { if (S.tab === 'nyt' && document.visibilityState === 'visible') lataaNyt(); }, 60000);
   }
 
@@ -375,6 +434,7 @@
     if (tab === 'kirjaukset' || tab === 'yhteenveto') lataaJakso();
     if (tab === 'tyomaat') piirraTyomaat();
     if (tab === 'tekijat') piirraTekijat();
+    if (tab === 'kuvat') avaaKuvat();
   }
 
   // ===================== Tietojen haku =====================
@@ -1030,6 +1090,200 @@
     await lataaPerustiedot(); piirraTekijat();
     if (!t) { TK.toast('Tekijä lisätty. Lähetä hänelle kutsulinkki.'); avaaTekija(S.tekijaMap.get(data.id)); }
     else { $('tekijaDialogi').close(); TK.toast('Tekijä tallennettu'); }
+  });
+
+  // ===================== Kuvat =====================
+  const JAKO_SEK = 5 * 365 * 86400;          // asiakkaan kuvaosoitteet voimassa 5 vuotta
+  const K = { kuvat: [], urls: new Map(), maarat: new Map() };
+
+  async function avaaKuvat() {
+    // Kuvamäärät työmaittain valintalistaan
+    const { data, error } = await db.from('kuvat').select('tyomaa_id');
+    K.maarat = new Map();
+    if (!error) for (const r of data) K.maarat.set(r.tyomaa_id, (K.maarat.get(r.tyomaa_id) || 0) + 1);
+    const sel = $('kuvaTyomaa'), arvo = sel.value;
+    const lista = [...S.tyomaat].sort((a, b) => (K.maarat.get(b.id) || 0) - (K.maarat.get(a.id) || 0) || nimiJarjestys(a.nimi, b.nimi));
+    sel.innerHTML = lista.map(w => `<option value="${w.id}">${esc(w.nimi)} (${K.maarat.get(w.id) || 0})</option>`).join('');
+    sel.value = arvo && lista.some(w => String(w.id) === arvo) ? arvo : (lista[0] ? String(lista[0].id) : '');
+    await lataaKuvat();
+  }
+
+  async function lataaKuvat() {
+    const wid = Number($('kuvaTyomaa').value);
+    if (!wid) { $('kuvaSisalto').innerHTML = '<div class="tyhja">Ei työmaita.</div>'; $('kuvaJako').hidden = true; return; }
+    $('kuvaSisalto').innerHTML = '<div class="tyhja">Ladataan kuvia…</div>';
+    const { data, error } = await db.from('kuvat').select('*').eq('tyomaa_id', wid).order('otettu');
+    if (error) { $('kuvaSisalto').innerHTML = `<div class="tyhja">${esc(TK.virhe(error))}</div>`; return; }
+    K.kuvat = data;
+    const polut = data.map(k => k.pikkukuva || k.polku);
+    K.urls = new Map();
+    for (let i = 0; i < polut.length; i += 100) {
+      const { data: u } = await db.storage.from('kuvat').createSignedUrls(polut.slice(i, i + 100), 3600);
+      for (const x of (u || [])) if (x.signedUrl) K.urls.set(x.path, x.signedUrl);
+    }
+    piirraJako();
+    piirraKuvat();
+  }
+
+  function piirraJako() {
+    const w = tyomaa(Number($('kuvaTyomaa').value));
+    const el = $('kuvaJako');
+    el.hidden = false;
+    const jaettuja = K.kuvat.filter(k => k.asiakkaalle).length;
+    if (!w.jakoavain) {
+      el.innerHTML = `<div class="eyebrow">Asiakkaan linkki</div>
+        <div class="rivi"><span class="muted">Asiakas näkee linkistä vain kuvat, jotka merkitset asiakkaalle (nyt ${jaettuja}).</span>
+        <button class="btn btn-pieni btn-ensi" type="button" id="jakoLuo">Luo asiakkaan linkki</button></div>`;
+    } else {
+      const url = new URL('./asiakas.html?t=' + encodeURIComponent(w.jakoavain), location.href).href;
+      el.innerHTML = `<div class="eyebrow">Asiakkaan linkki · ${jaettuja} kuvaa näkyvissä</div>
+        <div class="linkkilaatikko">${esc(url)}</div>
+        <div class="rivi"><button class="btn btn-pieni" type="button" id="jakoKopioi">Kopioi linkki</button>
+        <a class="btn btn-pieni" href="${esc(url)}" target="_blank" rel="noopener">Avaa asiakkaan näkymä</a>
+        <button class="btn btn-pieni btn-vaara" type="button" id="jakoPoista">Poista linkki</button></div>`;
+      $('jakoKopioi').onclick = () => kopioi(url);
+      $('jakoPoista').onclick = async () => {
+        const b = $('jakoPoista');
+        if (!b.classList.contains('vahvista')) { b.classList.add('vahvista'); b.textContent = 'Vahvista: linkki lakkaa toimimasta'; return; }
+        const { error } = await db.from('tyomaat').update({ jakoavain: null }).eq('id', w.id);
+        if (error) return TK.toast(TK.virhe(error), 'virhe');
+        await lataaPerustiedot(); piirraJako(); TK.toast('Asiakkaan linkki poistettu');
+      };
+      return;
+    }
+    $('jakoLuo').onclick = async () => {
+      const { error } = await db.rpc('jaa_tyomaa', { p_tyomaa_id: w.id });
+      if (error) return TK.toast(TK.virhe(error), 'virhe');
+      await lataaPerustiedot(); piirraJako(); TK.toast('Asiakkaan linkki luotu');
+    };
+  }
+
+  function piirraKuvat() {
+    const vainJaetut = $('kuvaSuodatus').value === 'jaetut';
+    const lista = K.kuvat.filter(k => !vainJaetut || k.asiakkaalle);
+    if (!lista.length) {
+      $('kuvaSisalto').innerHTML = `<div class="tyhja">${vainJaetut ? 'Yhtään kuvaa ei ole vielä merkitty asiakkaalle.' : 'Tältä työmaalta ei ole vielä kuvia. Tekijät lisäävät kuvia omalta sivultaan kohdasta Kuvat.'}</div>`;
+      return;
+    }
+    const ryhmat = new Map();
+    for (const k of lista) { if (!ryhmat.has(k.vaihe)) ryhmat.set(k.vaihe, []); ryhmat.get(k.vaihe).push(k); }
+    $('kuvaSisalto').innerHTML = [...ryhmat].map(([vaihe, kuvat]) => {
+      const a = kuvat[0].otettu, l = kuvat[kuvat.length - 1].otettu;
+      return `<section class="vaihe" style="margin-top:18px">
+        <div class="vaihe-otsikko" data-vaihe="${esc(vaihe)}">
+          <h3>${esc(vaihe)}</h3>
+          <span class="muted pieni">${kuvat.length} kuvaa · ${TK.pvm(a)}${TK.ymd(a) !== TK.ymd(l) ? ' – ' + TK.pvm(l) : ''}</span>
+          <button class="btn-linkki btn" type="button" data-nimea="${esc(vaihe)}">Nimeä vaihe</button>
+          <button class="btn-linkki btn" type="button" data-jaa-vaihe="${esc(vaihe)}">Valitse kaikki asiakkaalle</button>
+        </div>
+        <div class="kuvaruudukko">${kuvat.map(k => `<article class="kuvakortti ${k.asiakkaalle ? 'jaettu' : ''}">
+            <button class="kuva" type="button" data-avaa="${k.id}"><img loading="lazy" alt="${esc(vaihe)}" src="${esc(K.urls.get(k.pikkukuva || k.polku) || '')}"></button>
+            <div class="teksti"><span>${esc(TK.pvm(k.otettu))} klo ${TK.aika(k.otettu)} · ${esc(k.tekija_id ? tekija(k.tekija_id).nimi : '')}</span>
+              ${k.kommentti ? `<span class="muted">${esc(k.kommentti)}</span>` : ''}</div>
+            <div class="alaosa">
+              <label class="valinta"><input type="checkbox" data-jaa="${k.id}" ${k.asiakkaalle ? 'checked' : ''}> Asiakkaalle</label>
+              <button class="btn btn-pieni btn-vaara" type="button" data-poista-kuva="${k.id}">Poista</button>
+            </div>
+          </article>`).join('')}</div>
+      </section>`;
+    }).join('');
+  }
+
+  async function jaaKuvat(kuvat, jaa) {
+    for (const k of kuvat) {
+      let muutos = { asiakkaalle: jaa, jako_url: null, jako_pikku_url: null };
+      if (jaa) {
+        const polut = [k.polku, k.pikkukuva].filter(Boolean);
+        const { data, error } = await db.storage.from('kuvat').createSignedUrls(polut, JAKO_SEK);
+        if (error || !data || !data[0] || !data[0].signedUrl) { TK.toast('Kuvan jakaminen ei onnistunut.', 'virhe'); continue; }
+        muutos.jako_url = data[0].signedUrl;
+        muutos.jako_pikku_url = data[1] && data[1].signedUrl ? data[1].signedUrl : null;
+      }
+      const { error } = await db.from('kuvat').update(muutos).eq('id', k.id);
+      if (error) { TK.toast(TK.virhe(error), 'virhe'); continue; }
+      Object.assign(k, muutos);
+    }
+    piirraJako(); piirraKuvat();
+  }
+
+  $('kuvaTyomaa').addEventListener('change', lataaKuvat);
+  $('kuvaSuodatus').addEventListener('change', piirraKuvat);
+  $('kuvaSisalto').addEventListener('change', e => {
+    const c = e.target.closest('[data-jaa]'); if (!c) return;
+    const k = K.kuvat.find(x => x.id === Number(c.dataset.jaa));
+    if (k) jaaKuvat([k], c.checked);
+  });
+  $('kuvaSisalto').addEventListener('click', async e => {
+    const avaa = e.target.closest('[data-avaa]');
+    if (avaa) {
+      const k = K.kuvat.find(x => x.id === Number(avaa.dataset.avaa));
+      const { data } = await db.storage.from('kuvat').createSignedUrl(k.polku, 3600);
+      if (data && data.signedUrl) naytaKuva(data.signedUrl, `${k.vaihe} · ${TK.pvm(k.otettu)} klo ${TK.aika(k.otettu)}${k.kommentti ? ' · ' + k.kommentti : ''}`);
+      return;
+    }
+    const jaaVaihe = e.target.closest('[data-jaa-vaihe]');
+    if (jaaVaihe) return jaaKuvat(K.kuvat.filter(k => k.vaihe === jaaVaihe.dataset.jaaVaihe && !k.asiakkaalle), true);
+    const poista = e.target.closest('[data-poista-kuva]');
+    if (poista) {
+      if (!poista.classList.contains('vahvista')) { poista.classList.add('vahvista'); poista.textContent = 'Vahvista'; return; }
+      const k = K.kuvat.find(x => x.id === Number(poista.dataset.poistaKuva));
+      const { error: e1 } = await db.storage.from('kuvat').remove([k.polku, k.pikkukuva].filter(Boolean));
+      if (e1) return TK.toast(TK.virhe(e1), 'virhe');
+      const { error: e2 } = await db.from('kuvat').delete().eq('id', k.id);
+      if (e2) return TK.toast(TK.virhe(e2), 'virhe');
+      K.kuvat = K.kuvat.filter(x => x.id !== k.id);
+      piirraJako(); piirraKuvat(); TK.toast('Kuva poistettu');
+      return;
+    }
+    const nimea = e.target.closest('[data-nimea]');
+    if (nimea) {
+      const vanha = nimea.dataset.nimea, otsikko = nimea.closest('.vaihe-otsikko');
+      otsikko.innerHTML = `<input type="text" value="${esc(vanha)}" maxlength="80" aria-label="Uusi nimi">
+        <button class="btn btn-pieni btn-ensi" type="button" data-tallenna-nimi>Tallenna</button>
+        <button class="btn btn-pieni" type="button" data-peru-nimi>Peruuta</button>`;
+      const input = otsikko.querySelector('input'); input.focus(); input.select();
+      otsikko.querySelector('[data-peru-nimi]').onclick = piirraKuvat;
+      otsikko.querySelector('[data-tallenna-nimi]').onclick = async () => {
+        const uusi = input.value.trim();
+        if (!uusi || uusi === vanha) return piirraKuvat();
+        const { error } = await db.from('kuvat').update({ vaihe: uusi }).eq('tyomaa_id', Number($('kuvaTyomaa').value)).eq('vaihe', vanha);
+        if (error) return TK.toast(TK.virhe(error), 'virhe');
+        for (const k of K.kuvat) if (k.vaihe === vanha) k.vaihe = uusi;
+        piirraKuvat(); TK.toast('Työvaihe nimetty uudelleen');
+      };
+    }
+  });
+
+  function naytaKuva(url, teksti) {
+    const el = document.createElement('div');
+    el.className = 'katselu';
+    el.innerHTML = `<div><img src="${esc(url)}" alt=""><div class="kuvateksti">${esc(teksti)}</div></div><button type="button">Sulje</button>`;
+    const sulje = () => { el.remove(); document.removeEventListener('keydown', esc_); };
+    const esc_ = e => { if (e.key === 'Escape') sulje(); };
+    el.addEventListener('click', e => { if (e.target === el || e.target.tagName === 'BUTTON') sulje(); });
+    document.addEventListener('keydown', esc_);
+    document.body.appendChild(el);
+  }
+
+  $('kuvaPdf').addEventListener('click', async () => {
+    const vainJaetut = $('kuvaPdfJaetut').checked;
+    const lista = K.kuvat.filter(k => !vainJaetut || k.asiakkaalle);
+    if (!lista.length) return TK.toast(vainJaetut ? 'Merkitse ensin kuvia asiakkaalle.' : 'Ei kuvia raporttiin.', 'virhe');
+    const b = $('kuvaPdf'); b.disabled = true;
+    try {
+      const { data } = await db.storage.from('kuvat').createSignedUrls(lista.map(k => k.polku), 3600);
+      const url = new Map((data || []).map(x => [x.path, x.signedUrl]));
+      const w = tyomaa(Number($('kuvaTyomaa').value));
+      await TKRaportti.luo({
+        tyomaa: w, yritys: TK.cfg.yritys,
+        kuvat: lista.map(k => ({ ...k, url: url.get(k.polku) })).filter(k => k.url),
+        eteneminen: (i, n) => { b.textContent = `Muodostetaan ${i}/${n}…`; }
+      });
+    } catch (e) {
+      TK.toast(TK.virhe(e), 'virhe');
+    } finally {
+      b.disabled = false; b.textContent = 'Lataa PDF-raportti';
+    }
   });
 
   // ---------- Dialogien sulkeminen ----------
