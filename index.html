@@ -252,9 +252,9 @@
   <!-- Muu työ -->
   <section id="muuLomake" class="muu-kortti" hidden>
     <h2 id="muuOtsikko">Lisää muu työ</h2>
-    <p class="pieni muted" id="muuOhje" style="margin:0" hidden>Matka-aika laskutetaan asiakkaalta erikseen. Työmaalta toiselle siirtyminen kirjautuu automaattisesti Siirryn-napista.</p>
+    <p class="pieni muted" id="muuOhje" style="margin:0" hidden>Matka-aika kirjataan erikseen omana rivinään. Työmaalta toiselle siirtyminen kirjautuu automaattisesti Siirryn-napista.</p>
     <label><span id="muuKuvausOts">Mitä teit?</span>
-      <input type="text" id="muuKuvaus" maxlength="200" placeholder="Esim. tarvikehaku Bauhaus, varastolla">
+      <input type="text" id="muuKuvaus" maxlength="200" placeholder="Kirjoita lyhyesti, mitä teit">
     </label>
     <div class="kaksi-kenttaa">
       <label>Päivä <input type="date" id="muuPaiva"></label>
@@ -324,11 +324,11 @@
         </button>
         <button class="toiminto" type="button" id="matkaNappi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2-5a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5v4h-2"/><path d="M5 17H3v-4h18"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>
-          <span><b>Matka-aika</b><small>Ajo työmaalle, esim. varastolta.</small></span>
+          <span><b>Matka-aika</b><small>Merkitse päivä, kesto ja työmaa.</small></span>
         </button>
         <button class="toiminto" type="button" id="muuNappi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
-          <span><b>Muu työ</b><small>Tarvikehaku, varasto ym.</small></span>
+          <span><b>Muu työ</b><small>Työ, joka ei tapahdu työmaalla.</small></span>
         </button>
       </div>
     </div>
@@ -647,8 +647,8 @@
     $('muuOtsikko').textContent = matka ? 'Lisää matka-aika' : 'Lisää muu työ';
     $('muuOhje').hidden = !matka;
     $('muuKuvausOts').innerHTML = matka ? 'Mistä mihin? <span class="vihje">(vapaaehtoinen)</span>' : 'Mitä teit?';
-    $('muuKuvaus').placeholder = matka ? 'Esim. varasto → työmaa' : 'Esim. tarvikehaku Bauhaus, varastolla';
-    $('muuTyomaaVihje').textContent = matka ? '(pakollinen, laskutetaan tältä asiakkaalta)' : '(jos liittyy johonkin)';
+    $('muuKuvaus').placeholder = matka ? '' : 'Kirjoita lyhyesti, mitä teit';
+    $('muuTyomaaVihje').textContent = matka ? '(pakollinen)' : '(jos liittyy johonkin)';
     const sel = $('muuTyomaa'), arvo = sel.value || (tila.avoin && tila.avoin.tyomaa_id ? String(tila.avoin.tyomaa_id) : '');
     sel.innerHTML = `<option value="">${matka ? 'Valitse työmaa' : 'Ei tietylle työmaalle'}</option>` +
       tila.tyomaat.map(w => `<option value="${w.id}">${TK.esc(w.nimi)}</option>`).join('');
@@ -975,6 +975,8 @@
   function piirraYhteenveto() {
     const { rivit, yht } = yvLaske();
     const hinta = Number(yv.tuntihinta) > 0 ? Number(yv.tuntihinta) : null;
+    const matkaH = rivit.reduce((s, x) => s + x.matka, 0), tyoH = yht - matkaH;
+    const eur = n => new Intl.NumberFormat('fi-FI', { style: 'currency', currency: 'EUR' }).format(n);
     const h = n => n ? TK.num(n) : '–';
     $('yvSisalto').classList.remove('muted');
     $('yvSisalto').innerHTML = `<div class="muted pieni">${pvmTeksti(yv.jakso.alku)} – ${pvmTeksti(yv.jakso.loppu)} · ${yv.kirjaukset.length} kirjausta</div>
@@ -983,7 +985,8 @@
         <tbody>${rivit.map(x => `<tr><td>${TK.esc(x.nimi)}</td><td class="n">${h(x.tyomaa)}</td><td class="n">${h(x.matka)}</td><td class="n">${h(x.muu)}</td><td class="n"><b>${TK.num(x.yht)}</b></td></tr>`).join('')}</tbody>
         <tfoot><tr><td colspan="4">Yhteensä</td><td class="n">${TK.num(yht)} h</td></tr></tfoot>
       </table></div>
-      <div class="yv-summa">${TK.num(yht)} h${hinta != null ? ` × ${TK.num(hinta)} €/h = ${new Intl.NumberFormat('fi-FI', { style: 'currency', currency: 'EUR' }).format(yht * hinta)}` : ''}</div>`
+      <div class="yv-summa">${hinta != null ? `${TK.num(tyoH)} h × ${TK.num(hinta)} €/h = ${eur(tyoH * hinta)}` : `${TK.num(tyoH)} h`}</div>
+      ${matkaH ? `<div class="muted pieni">Summassa ei ole matka-aikaa (${TK.num(matkaH)} h). Sen korvaamisesta sovitaan erikseen.</div>` : ''}`
       : '<div class="muted">Ei kirjauksia tällä aikavälillä.</div>'}`;
     $('yvExcel').disabled = !rivit.length;
   }
@@ -1015,7 +1018,10 @@
         ...rivit.map(x => [x.nimi, pyor(x.tyomaa), pyor(x.matka), pyor(x.muu), pyor(x.yht)]),
         ['Yhteensä', '', '', '', pyor(yht)]
       ];
-      if (hinta != null) aoa.push([], ['Tuntihinta €', hinta], ['Summa €', pyor(yht * hinta)]);
+      const matkaH = rivit.reduce((s, x) => s + x.matka, 0), tyoH = yht - matkaH;
+      aoa.push([], ['Työtunnit (ilman matka-aikaa) h', pyor(tyoH)]);
+      if (hinta != null) aoa.push(['Tuntihinta €', hinta], ['Summa €', pyor(tyoH * hinta)]);
+      if (matkaH) aoa.push(['Matka-aika h (korvauksesta sovitaan erikseen)', pyor(matkaH)]);
       const wb = XLSX.utils.book_new();
       const ws1 = XLSX.utils.aoa_to_sheet(aoa); ws1['!cols'] = [{ wch: 32 }, { wch: 16 }, { wch: 12 }, { wch: 11 }, { wch: 12 }];
       const ws2 = XLSX.utils.json_to_sheet(kirj); ws2['!cols'] = [{ wch: 11 }, { wch: 11 }, { wch: 30 }, { wch: 30 }, { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 40 }];
