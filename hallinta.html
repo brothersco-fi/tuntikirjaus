@@ -82,6 +82,8 @@
   tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 60%, var(--surface)); }
   tbody tr:last-child td { border-bottom: 0; }
   tfoot td { font-weight: 600; border-bottom: 0; border-top: 1px solid var(--line-strong); }
+  tfoot tr.osasumma td { font-weight: 400; color: var(--muted); border-top: 0; padding-top: 6px; padding-bottom: 6px; }
+  tfoot tr.osasumma:first-child td { border-top: 1px solid var(--line-strong); padding-top: 10px; }
   .komm { min-width: 180px; max-width: 360px; }
   .komm .huomio { display: block; color: var(--warn); font-size: .8rem; font-weight: 500; }
   .himmea td { color: var(--muted); }
@@ -218,7 +220,7 @@
         <div class="otsikko"><h2>Yhteenveto</h2></div>
         <div class="luvut" id="yhtLuvut"></div>
         <div><h3 class="alaotsikko">Työmaittain</h3><div class="taulu-kehys" id="yhtTyomaat"></div></div>
-        <div><h3 class="alaotsikko">Tekijöittäin</h3><p class="muted pieni" style="margin:-4px 0 8px">Vertaa tätä alihankkijan laskuun: tunnit × sovittu tuntihinta.</p><div class="taulu-kehys" id="yhtTekijat"></div></div>
+        <div><h3 class="alaotsikko">Tekijöittäin</h3><p class="muted pieni" style="margin:-4px 0 8px">Vertaa tätä alihankkijan laskuun: tunnit × sovittu tuntihinta. Matka-ajan tuntihinta on 0 €.</p><div class="taulu-kehys" id="yhtTekijat"></div></div>
         <div><h3 class="alaotsikko">Tekijät työmaittain</h3><div class="taulu-kehys" id="yhtRisti"></div></div>
       </section>
 
@@ -526,6 +528,9 @@
   const KESTO = t => t === 'muu' || t === 'matka';                 // merkitty kestona, ei kellonaikoja
   const SARAKE = { tyomaa: 'tyomaa', siirtyma: 'matka', matka: 'matka', muu: 'muu' };   // siirtymät lasketaan matka-aikaan
   const tyyppi = k => k.tyyppi || 'tyomaa';
+  // Tekijälle maksettava €/h kirjaukselle: matka-aika (matka ja siirtymä) 0 €/h, muuten tekijän tuntihinta
+  const ON_MATKA = k => tyyppi(k) === 'matka' || tyyppi(k) === 'siirtyma';
+  const kustHinta = k => ON_MATKA(k) ? 0 : (Number(tekija(k.tekija_id).tuntihinta) || 0);
 
   // Mihin kirjaus kohdistuu, tekstinä ja HTML:nä
   function kohdeTeksti(k) {
@@ -642,10 +647,13 @@
       </tr>`;
     }).join('');
     const yht = lista.reduce((s, k) => s + (TK.tunnit(k.saapui, k.lahti) || 0), 0);
+    const matkaH = lista.filter(ON_MATKA).reduce((s, k) => s + (TK.tunnit(k.saapui, k.lahti) || 0), 0);
+    const sarakkeet = paiva ? 5 : 4;
+    const summarivi = (otsikko, arvo, luokka = '') => `<tr class="${luokka}"><td colspan="${sarakkeet}">${otsikko}</td><td class="n">${TK.num(arvo)}</td><td colspan="3"></td></tr>`;
     return `<table>
       <thead><tr>${paiva ? '<th>Päivä</th>' : ''}<th>Tekijä</th><th>Työmaa / työ</th><th class="n">Alkoi</th><th class="n">Päättyi</th><th class="n">Tunnit</th><th>Sijainti</th><th>Kommentti</th><th></th></tr></thead>
       <tbody>${rivit}</tbody>
-      ${summa ? `<tfoot><tr><td colspan="${paiva ? 5 : 4}">Yhteensä</td><td class="n">${TK.num(yht)}</td><td colspan="3"></td></tr></tfoot>` : ''}
+      ${summa ? `<tfoot>${matkaH ? summarivi('Työtunnit', yht - matkaH, 'osasumma') + summarivi('Matka-aika', matkaH, 'osasumma') : ''}${summarivi('Yhteensä', yht)}</tfoot>` : ''}
     </table>`;
   }
 
@@ -653,10 +661,12 @@
     const lista = suodatetut();
     const valmiit = lista.filter(k => k.lahti);
     const tunnit = valmiit.reduce((s, k) => s + TK.tunnit(k.saapui, k.lahti), 0);
-    const kust = valmiit.reduce((s, k) => s + TK.tunnit(k.saapui, k.lahti) * (Number(tekija(k.tekija_id).tuntihinta) || 0), 0);
+    const matka = valmiit.filter(ON_MATKA).reduce((s, k) => s + TK.tunnit(k.saapui, k.lahti), 0);
+    const kust = valmiit.reduce((s, k) => s + TK.tunnit(k.saapui, k.lahti) * kustHinta(k), 0);
     const ulkona = lista.filter(k => sijaintiTila(k).luokka === 'warn').length;
     $('kirjLuvut').innerHTML =
-      luku(TK.num1(tunnit) + ' h', 'Tunnit') +
+      luku(TK.num1(tunnit - matka) + ' h', 'Työtunnit') +
+      luku(TK.num1(matka) + ' h', 'Matka-aika') +
       luku(TK.eur(kust), 'Työkustannus') +
       luku(lista.length, 'Kirjauksia') +
       luku(ulkona, 'Sijainti työmaan ulkopuolella');
@@ -671,13 +681,13 @@
     for (const k of valmiit) {
       const h = TK.tunnit(k.saapui, k.lahti), laji = tyyppi(k);
       const t = tekija(k.tekija_id), w = tyomaa(k.tyomaa_id);
-      const kust = h * (Number(t.tuntihinta) || 0);
+      const kust = h * kustHinta(k);
       const lask = w.laskutushinta != null ? h * Number(w.laskutushinta) : null;
       const wkey = k.tyomaa_id ?? 'ei';
 
       const a = perTyomaa.get(wkey) || { w, tunnit: 0, laji: lajit(), kust: 0, lask: 0, tekijat: new Set(), hintaPuuttuu: false };
       a.tunnit += h; a.laji[SARAKE[laji] || 'tyomaa'] += h; a.kust += kust; a.lask += lask || 0; a.tekijat.add(k.tekija_id);
-      if (t.tuntihinta == null) a.hintaPuuttuu = true;
+      if (t.tuntihinta == null && !ON_MATKA(k)) a.hintaPuuttuu = true;
       perTyomaa.set(wkey, a);
 
       const b = perTekija.get(k.tekija_id) || { t, tunnit: 0, laji: lajit(), kust: 0, paivat: new Set() };
@@ -706,8 +716,8 @@
   function piirraYhteenveto() {
     const Y = laskeYhteenveto(suodatetut());
     $('yhtLuvut').innerHTML =
-      luku(TK.num1(Y.tunnit) + ' h', 'Tunnit yhteensä') +
-      luku(`${TK.num1(Y.laji.matka)} h / ${TK.num1(Y.laji.muu)} h`, 'Matka-aika / muu työ') +
+      luku(TK.num1(Y.tunnit - Y.laji.matka) + ' h', 'Työtunnit') +
+      luku(TK.num1(Y.laji.matka) + ' h', 'Matka-aika') +
       luku(TK.eur(Y.kust), 'Työkustannus') +
       luku(Y.lask ? TK.eur(Y.lask) : '–', 'Laskutettavissa (€/h-työmaat)');
 
@@ -777,8 +787,8 @@
         'Saapui': KESTO(tyyppi(k)) ? '' : TK.aika(k.saapui),
         'Lähti': KESTO(tyyppi(k)) ? '' : k.lahti ? (TK.ymd(k.lahti) !== TK.ymd(k.saapui) ? TK.pvm(k.lahti) + ' ' : '') + TK.aika(k.lahti) : 'käynnissä',
         'Tunnit': h === null ? null : pyor(h),
-        'Tuntihinta €': t.tuntihinta != null ? Number(t.tuntihinta) : null,
-        'Kustannus €': h !== null && t.tuntihinta != null ? pyor(h * Number(t.tuntihinta)) : null,
+        'Tuntihinta €': ON_MATKA(k) ? 0 : t.tuntihinta != null ? Number(t.tuntihinta) : null,
+        'Kustannus €': h === null ? null : ON_MATKA(k) ? 0 : t.tuntihinta != null ? pyor(h * Number(t.tuntihinta)) : null,
         'Kommentti': k.kommentti || '', 'Huomio': k.huomio || '',
         'Sijainti': s.teksti, 'Kartta': s.linkki || ''
       };
