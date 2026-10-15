@@ -176,6 +176,7 @@
       <div class="suodatin" id="suodatin" hidden>
         <label>Aikaväli
           <select id="jakso">
+            <option value="tn">Tänään</option>
             <option value="tv">Tämä viikko</option>
             <option value="vv">Viime viikko</option>
             <option value="tk" selected>Tämä kuukausi</option>
@@ -479,7 +480,8 @@
     const lisaa = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
     const ma = lisaa(paiva(nyt), -((nyt.getDay() + 6) % 7));
     let alku, loppu, nimi;
-    if (v === 'tv') { alku = ma; loppu = lisaa(ma, 7); nimi = 'Tämä viikko'; }
+    if (v === 'tn') { alku = paiva(nyt); loppu = lisaa(alku, 1); nimi = 'Tänään'; }
+    else if (v === 'tv') { alku = ma; loppu = lisaa(ma, 7); nimi = 'Tämä viikko'; }
     else if (v === 'vv') { alku = lisaa(ma, -7); loppu = ma; nimi = 'Viime viikko'; }
     else if (v === 'tk') { alku = new Date(nyt.getFullYear(), nyt.getMonth(), 1); loppu = new Date(nyt.getFullYear(), nyt.getMonth() + 1, 1); nimi = 'Tämä kuukausi'; }
     else if (v === 'vk') { alku = new Date(nyt.getFullYear(), nyt.getMonth() - 1, 1); loppu = new Date(nyt.getFullYear(), nyt.getMonth(), 1); nimi = 'Viime kuukausi'; }
@@ -489,7 +491,8 @@
       loppu = l ? lisaa(new Date(l + 'T00:00'), 1) : lisaa(paiva(nyt), 1);
       nimi = 'Oma aikaväli';
     }
-    return { alku, loppu, nimi, teksti: `${TK.pvm(alku)} – ${TK.pvm(lisaa(loppu, -1))}` };
+    const viim = lisaa(loppu, -1);
+    return { alku, loppu, nimi, teksti: TK.pvm(alku) === TK.pvm(viim) ? TK.pvm(alku) : `${TK.pvm(alku)} – ${TK.pvm(viim)}` };
   }
 
   async function lataaJakso() {
