@@ -119,6 +119,17 @@
   .esikatselu img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .esikatselu button { position: absolute; top: 5px; right: 5px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgb(20 20 18 / .7); color: #fff; font-size: 15px; line-height: 1; cursor: pointer; }
   .esikatselu figure.valmis::after { content: '✓'; position: absolute; inset: auto 6px 6px auto; width: 22px; height: 22px; border-radius: 50%; background: var(--on); color: #fff; display: grid; place-items: center; font-size: .8rem; font-weight: 600; }
+  .omat-kuvat { display: grid; gap: 12px; margin-top: 6px; padding-top: 18px; border-top: 1px solid var(--line); }
+  .omat-kuvat h3 { font-size: 1.5rem; }
+  .omat-ruudukko { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .oma-kuva { margin: 0; display: grid; gap: 4px; align-content: start; min-width: 0; }
+  .oma-kuva .kehys { aspect-ratio: 1; border-radius: 4px; overflow: hidden; background: var(--surface-2); }
+  .oma-kuva img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .oma-kuva figcaption { font-size: .76rem; line-height: 1.3; color: var(--muted); display: grid; min-width: 0; }
+  .oma-kuva figcaption > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oma-kuva figcaption b { color: var(--ink); font-weight: 500; }
+  .oma-kuva .btn { min-height: 32px; padding: 0 .5em; font-size: .8rem; width: 100%; }
+  .oma-kuva .jaettu { font-size: .72rem; color: var(--on); }
   .ehdotukset { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -6px; }
   .ehdotukset button { border: 1px solid var(--line-strong); background: transparent; border-radius: 999px; padding: 6px 13px; font-size: .86rem; cursor: pointer; }
   .ehdotukset button[aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
@@ -279,6 +290,7 @@
     </label>
     <div class="ehdotukset" id="vaiheEhdotukset" aria-label="Työmaan aiemmat työvaiheet"></div>
     <label><span>Kommentti <span class="vihje">(vapaaehtoinen)</span></span><input type="text" id="kuvaKommentti" maxlength="500" placeholder="Esim. kylpyhuoneen lattia"></label>
+    <label><span>Päivä, jolloin kuvat otettiin <span class="vihje" id="kuvaPaivaVihje"></span></span><input type="date" id="kuvaPaiva"></label>
     <input type="file" id="kuvaTiedostot" accept="image/*" multiple hidden>
     <button class="kuvanappi" type="button" id="kuvaValitse">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
@@ -289,6 +301,11 @@
     <div class="muu-napit">
       <button class="btn" type="button" id="kuvaPeru">Peruuta</button>
       <button class="btn btn-ensi" type="button" id="kuvaTallenna" disabled>Tallenna kuvat</button>
+    </div>
+    <div class="omat-kuvat" id="omatKuvat" hidden>
+      <div class="otsikkorivi"><h3>Omat kuvat</h3><span class="muted pieni">viimeiset 7 päivää</span></div>
+      <div class="omat-ruudukko" id="omatKuvatLista"></div>
+      <p class="pieni muted" style="margin:0">Voit poistaa itse lisäämäsi kuvan viikon ajan. Asiakkaalle jaetun kuvan poistaa työnjohto.</p>
     </div>
   </section>
 
@@ -320,7 +337,7 @@
         </button>
         <button class="toiminto" type="button" id="kuvaNappi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-          <span><b>Kuvat</b><small>Kuvaa työvaiheet työmaalla.</small></span>
+          <span><b>Kuvat</b><small>Lisää kuvia työvaiheista tai poista omiasi.</small></span>
         </button>
         <button class="toiminto" type="button" id="matkaNappi">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13l2-5a2 2 0 0 1 1.9-1.4h10.2A2 2 0 0 1 19 8l2 5v4h-2"/><path d="M5 17H3v-4h18"/><circle cx="7.5" cy="17" r="2"/><circle cx="16.5" cy="17" r="2"/></svg>
@@ -789,8 +806,123 @@
   function avaaKuvat() {
     naytaKuvat = true; naytaMuu = false; naytaValinta = false;
     piirra();
+    alustaKuvaPaiva();
+    lataaOmatKuvat();
     $('kuvaLomake').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+
+  // ---------- Kuvien päivä (myös menneille päiville) ----------
+  let kuvaPaivaKasin = false;
+  function alustaKuvaPaiva(pakota) {
+    const el = $('kuvaPaiva'), tanaan = TK.ymd(new Date());
+    el.max = tanaan;
+    el.min = TK.ymd(new Date(Date.now() - 30 * 86400000));
+    if (pakota || !el.value) { el.value = tanaan; kuvaPaivaKasin = false; $('kuvaPaivaVihje').textContent = ''; }
+  }
+  $('kuvaPaiva').addEventListener('input', () => { kuvaPaivaKasin = true; $('kuvaPaivaVihje').textContent = ''; });
+
+  // Kuvan ottoaika JPEG-kuvan EXIF-tiedoista (jos puhelin on ne tallentanut)
+  async function exifAika(file) {
+    try {
+      const d = new DataView(await file.slice(0, 196608).arrayBuffer());
+      if (d.getUint16(0) !== 0xFFD8) return null;
+      let o = 2;
+      while (o + 10 < d.byteLength) {
+        const merkki = d.getUint16(o), pituus = d.getUint16(o + 2);
+        if (merkki === 0xFFE1 && d.getUint32(o + 4) === 0x45786966) {
+          const t = o + 10, le = d.getUint16(t) === 0x4949;
+          const u16 = p => d.getUint16(t + p, le), u32 = p => d.getUint32(t + p, le);
+          const etsi = (ifd, tag) => { const n = u16(ifd); for (let i = 0; i < n; i++) { const e = ifd + 2 + i * 12; if (u16(e) === tag) return e; } return null; };
+          const ifd0 = u32(4);
+          let e = null;
+          const exifIfd = etsi(ifd0, 0x8769);
+          if (exifIfd !== null) e = etsi(u32(exifIfd + 8), 0x9003);
+          if (e === null) e = etsi(ifd0, 0x0132);
+          if (e === null) return null;
+          const n = u32(e + 4), p = n > 4 ? u32(e + 8) : e + 8;
+          let teksti = '';
+          for (let i = 0; i < Math.min(n, 19); i++) teksti += String.fromCharCode(d.getUint8(t + p + i));
+          const m = teksti.match(/^(\d{4}):(\d\d):(\d\d) (\d\d):(\d\d):(\d\d)/);
+          return m ? new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : null;
+        }
+        if ((merkki & 0xFF00) !== 0xFF00 || merkki === 0xFFDA) break;
+        o += 2 + pituus;
+      }
+    } catch (e) { /* ei EXIF-tietoa */ }
+    return null;
+  }
+
+  // Jos kuvissa on ottopäivä, ehdotetaan sitä (ellei tekijä ole valinnut päivää itse)
+  async function paivaKuvista() {
+    await Promise.all(kuvaTiedostot.filter(k => k.exif === undefined).map(async k => { k.exif = await exifAika(k.file); }));
+    if (kuvaPaivaKasin) return;
+    const el = $('kuvaPaiva');
+    const laskuri = new Map();
+    for (const k of kuvaTiedostot) {
+      if (k.valmis || !k.exif) continue;
+      const pv = TK.ymd(k.exif);
+      if (pv >= el.min && pv <= el.max) laskuri.set(pv, (laskuri.get(pv) || 0) + 1);
+    }
+    if (!laskuri.size) return;
+    const [paras] = [...laskuri.entries()].sort((a, b) => b[1] - a[1])[0];
+    el.value = paras;
+    $('kuvaPaivaVihje').textContent = paras === TK.ymd(new Date()) ? '' : '(luettu kuvista)';
+  }
+
+  function otettuAika(k, valittu) {
+    const ehdokkaat = [k.exif, k.file.lastModified ? new Date(k.file.lastModified) : null].filter(Boolean);
+    const sama = ehdokkaat.find(d => TK.ymd(d) === valittu);
+    if (sama) return sama.toISOString();
+    if (valittu === TK.ymd(new Date())) return new Date().toISOString();
+    return new Date(valittu + 'T12:00:00').toISOString();
+  }
+
+  // ---------- Omat kuvat: katselu ja poisto ----------
+  let omatKuvat = [];
+  async function lataaOmatKuvat() {
+    try {
+      const { data, error } = await db.rpc('omat_kuvat', { p_avain: avain });
+      if (error) throw error;
+      omatKuvat = data || [];
+      const urls = new Map();
+      if (omatKuvat.length) {
+        const { data: u } = await db.storage.from('kuvat').createSignedUrls(omatKuvat.map(k => k.kuva), 1200);
+        for (const x of (u || [])) if (x.signedUrl) urls.set(x.path, x.signedUrl);
+      }
+      for (const k of omatKuvat) k.url = urls.get(k.kuva) || '';
+    } catch (e) { omatKuvat = []; }
+    piirraOmatKuvat();
+  }
+  function piirraOmatKuvat() {
+    $('omatKuvat').hidden = !omatKuvat.length;
+    $('omatKuvatLista').innerHTML = omatKuvat.map(k => `<figure class="oma-kuva">
+        <div class="kehys">${k.url ? `<img src="${TK.esc(k.url)}" alt="${TK.esc(k.vaihe)}" loading="lazy">` : ''}</div>
+        <figcaption><b>${TK.esc(k.vaihe)}</b><span>${TK.esc(TK.paiva(k.otettu))}</span><span class="tm">${TK.esc(k.tyomaa)}</span></figcaption>
+        ${k.jaettu ? '<span class="jaettu">Jaettu asiakkaalle</span>' : `<button class="btn btn-vaara" type="button" data-poista-kuva="${k.id}">Poista</button>`}
+      </figure>`).join('');
+  }
+  $('omatKuvatLista').addEventListener('click', async e => {
+    const b = e.target.closest('[data-poista-kuva]'); if (!b) return;
+    if (!b.classList.contains('vahvista')) { b.classList.add('vahvista'); b.textContent = 'Vahvista'; return; }
+    const id = Number(b.dataset.poistaKuva);
+    b.disabled = true; b.textContent = 'Poistetaan…';
+    try {
+      const { data: polut, error } = await db.rpc('kuva_poistolupa', { p_avain: avain, p_id: id });
+      if (error) throw error;
+      const { data: pois, error: e2 } = await db.storage.from('kuvat').remove(polut);
+      if (e2) throw e2;
+      if (!pois || !pois.length) throw new Error('Kuvan poisto ei onnistunut. Yritä uudelleen.');
+      const { error: e3 } = await db.rpc('poista_oma_kuva', { p_avain: avain, p_id: id });
+      if (e3) throw e3;
+      omatKuvat = omatKuvat.filter(k => k.id !== id);
+      piirraOmatKuvat();
+      $('kuvaTyomaa').dataset.ladattu = ''; lataaVaiheet();
+      TK.toast('Kuva poistettu');
+    } catch (err) {
+      TK.toast(TK.virhe(err), 'virhe');
+      b.disabled = false; b.classList.remove('vahvista'); b.textContent = 'Poista';
+    }
+  });
   $('kuvaNappi').addEventListener('click', avaaKuvat);
   $('kuvaNappiTyossa').addEventListener('click', avaaKuvat);
 
@@ -847,6 +979,7 @@
     }
     $('kuvaTiedostot').value = '';
     piirraEsikatselu();
+    paivaKuvista();
   });
   $('kuvaEsikatselu').addEventListener('click', e => {
     const b = e.target.closest('[data-poista]'); if (!b) return;
@@ -901,7 +1034,8 @@
           if (u1.error) throw u1.error;
           const u2 = await db.storage.from('kuvat').upload(perus + '_p.jpg', pieni.blob, { contentType: 'image/jpeg', upsert: false });
           if (u2.error) console.warn('Pikkukuva ei tallentunut', u2.error);
-          const otettu = k.file.lastModified ? new Date(k.file.lastModified).toISOString() : null;
+          if (k.exif === undefined) k.exif = await exifAika(k.file);
+          const otettu = otettuAika(k, $('kuvaPaiva').value || TK.ymd(new Date()));
           const { error } = await db.rpc('tallenna_kuva', {
             p_avain: avain, p_perus: perus, p_vaihe: vaihe, p_kommentti: $('kuvaKommentti').value || null,
             p_lat: s?.lat ?? null, p_lon: s?.lon ?? null, p_leveys: iso.leveys, p_korkeus: iso.korkeus, p_otettu: otettu
@@ -922,7 +1056,7 @@
     const epaonnistui = jono.length - onnistui;
     if (onnistui && !epaonnistui) {
       TK.toast(`${onnistui} ${onnistui === 1 ? 'kuva' : 'kuvaa'} tallennettu: ${vaihe}`);
-      tyhjennaKuvat(); $('kuvaKommentti').value = '';
+      tyhjennaKuvat(); $('kuvaKommentti').value = ''; alustaKuvaPaiva(true);
       naytaKuvat = false; piirra();
       $('kuvaTyomaa').dataset.ladattu = '';
     } else if (onnistui) {
