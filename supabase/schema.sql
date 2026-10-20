@@ -913,3 +913,115 @@ create policy kuvat_admin_luku on storage.objects for select to authenticated
   using (bucket_id = 'kuvat' and public.on_admin());
 create policy kuvat_admin_poisto on storage.objects for delete to authenticated
   using (bucket_id = 'kuvat' and public.on_admin());
+
+-- =====================================================================
+--  Päivitys 6: tekijä näkee ja voi poistaa omat kuvansa (7 vrk)
+--  Kuvien katselu- ja poistoluvat ovat lyhytikäisiä (satunnainen polku + vanhenemisaika),
+--  samaan tapaan kuin latausluvat.
+-- =====================================================================
+create table if not exists public.kuva_kayttoluvat (
+  polku    text not null,
+  tyyppi   text not null check (tyyppi in ('nayta', 'poista')),
+  vanhenee timestamptz not null,
+  primary key (polku, tyyppi)
+);
+alter table public.kuva_kayttoluvat enable row level security;
+revoke all on public.kuva_kayttoluvat from anon, authenticated;
+
+create or replace function public.kuva_kaytto_sallittu(p_nimi text, p_tyyppi text)
+returns boolean language sql stable security definer set search_path = public, pg_temp as $$
+  select exists (
+    select 1 from public.kuva_kayttoluvat
+    where polku = p_nimi and vanhenee > now() and (p_tyyppi is null or tyyppi = p_tyyppi))
+$$;
+
+-- Tekijän omat kuvat viimeisen 7 vuorokauden ajalta (uusin ensin) + katseluluvat pikkukuville
+create or replace function public.omat_kuvat(p_avain text)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_tekija bigint;
+begin
+  select id into v_tekija from public.tekijat where avain = p_avain and aktiivinen;
+  if v_tekija is null then
+    raise exception 'Linkki ei ole voimassa. Kirjaudu uudelleen.';
+  end if;
+  delete from public.kuva_kayttoluvat where vanhenee < now() - interval '1 hour';
+  insert into public.kuva_kayttoluvat (polku, tyyppi, vanhenee)
+  select coalesce(k.pikkukuva, k.polku), 'nayta', now() + interval '20 minutes'
+  from public.kuvat k
+  where k.tekija_id = v_tekija and k.luotu > now() - interval '7 days'
+  on conflict (polku, tyyppi) do update set vanhenee = excluded.vanhenee;
+  return coalesce((
+    select json_agg(json_build_object(
+             'id', k.id, 'tyomaa', w.nimi, 'vaihe', k.vaihe, 'kommentti', k.kommentti,
+             'otettu', k.otettu, 'luotu', k.luotu, 'kuva', coalesce(k.pikkukuva, k.polku),
+             'jaettu', k.asiakkaalle) order by k.luotu desc)
+    from (select * from public.kuvat
+          where tekija_id = v_tekija and luotu > now() - interval '7 days'
+          order by luotu desc limit 60) k
+    join public.tyomaat w on w.id = k.tyomaa_id), '[]'::json);
+end $$;
+
+-- Tarkistus: tekijä saa poistaa oman, alle 7 vrk sitten lisätyn kuvan, jota ei ole jaettu asiakkaalle
+create or replace function public.oma_kuva_poistettavissa(p_avain text, p_id bigint)
+returns public.kuvat language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  v_tekija bigint;
+  k public.kuvat;
+begin
+  select id into v_tekija from public.tekijat where avain = p_avain and aktiivinen;
+  if v_tekija is null then
+    raise exception 'Linkki ei ole voimassa. Kirjaudu uudelleen.';
+  end if;
+  select * into k from public.kuvat where id = p_id and tekija_id = v_tekija;
+  if not found then
+    raise exception 'Kuvaa ei löytynyt.';
+  end if;
+  if k.luotu < now() - interval '7 days' then
+    raise exception 'Yli viikon vanhan kuvan voi poistaa vain työnjohto.';
+  end if;
+  if k.asiakkaalle then
+    raise exception 'Kuva on jaettu asiakkaalle. Pyydä työnjohtoa poistamaan se.';
+  end if;
+  return k;
+end $$;
+
+-- Vaihe 1: poistolupa tiedostoille (tallennustilan poisto tehdään selaimesta)
+create or replace function public.kuva_poistolupa(p_avain text, p_id bigint)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  k public.kuvat := public.oma_kuva_poistettavissa(p_avain, p_id);
+  v_polut text[] := array_remove(array[k.polku, k.pikkukuva], null);
+begin
+  insert into public.kuva_kayttoluvat (polku, tyyppi, vanhenee)
+  select p, t, now() + interval '5 minutes' from unnest(v_polut) p cross join (values ('nayta'), ('poista')) x(t)
+  on conflict (polku, tyyppi) do update set vanhenee = excluded.vanhenee;
+  return to_json(v_polut);
+end $$;
+
+-- Vaihe 2: kuvan tietojen poisto
+create or replace function public.poista_oma_kuva(p_avain text, p_id bigint)
+returns json language plpgsql security definer set search_path = public, pg_temp as $$
+declare
+  k public.kuvat := public.oma_kuva_poistettavissa(p_avain, p_id);
+begin
+  delete from public.kuvat where id = k.id;
+  delete from public.kuva_kayttoluvat where polku in (k.polku, k.pikkukuva);
+  return json_build_object('id', k.id);
+end $$;
+
+revoke execute on function public.omat_kuvat(text) from public;
+revoke execute on function public.oma_kuva_poistettavissa(text, bigint) from public, anon, authenticated;
+revoke execute on function public.kuva_poistolupa(text, bigint) from public;
+revoke execute on function public.poista_oma_kuva(text, bigint) from public;
+grant  execute on function public.kuva_kaytto_sallittu(text, text) to anon, authenticated;
+grant  execute on function public.omat_kuvat(text) to anon, authenticated;
+grant  execute on function public.kuva_poistolupa(text, bigint) to anon, authenticated;
+grant  execute on function public.poista_oma_kuva(text, bigint) to anon, authenticated;
+
+drop policy if exists kuvat_tekija_luku on storage.objects;
+drop policy if exists kuvat_tekija_poisto on storage.objects;
+create policy kuvat_tekija_luku on storage.objects for select to anon, authenticated
+  using (bucket_id = 'kuvat' and public.kuva_kaytto_sallittu(name, null));
+create policy kuvat_tekija_poisto on storage.objects for delete to anon, authenticated
+  using (bucket_id = 'kuvat' and public.kuva_kaytto_sallittu(name, 'poista'));
